@@ -1,4 +1,4 @@
-# MemeDb
+# MemeDB
 Building, testing, and running dev servers is done through `npm`.
 
 ## Repo initialization
