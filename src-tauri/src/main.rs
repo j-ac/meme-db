@@ -3,11 +3,26 @@
     windows_subsystem = "windows"
 )]
 
+use std::vec::Vec;
 use sysinfo::{ProcessExt, System, SystemExt};
+use tauri::generate_handler;
+
+#[tauri::command]
+async fn get_folders() -> Vec<String> {
+    println!("GET FOLDERS!");
+    return std::vec!["./".to_string(), "././".to_string()];
+}
+
+#[tauri::command]
+async fn get_files(folder: String, a: usize, b: usize) -> Vec<String> {
+    println!("GET FILES!");
+    return std::vec!["Test.txt".to_string(), "ab.png".to_string()];
+}
 
 fn main() {
     enforce_daemon();
     tauri::Builder::default()
+        .invoke_handler(generate_handler![get_folders, get_files])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
