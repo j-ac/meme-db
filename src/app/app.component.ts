@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { invoke } from '@tauri-apps/api';
 import { flatMap, from, generate, mergeMap, Observable } from 'rxjs';
+import { FolderFetchService } from 'src/service/folders/folder-fetch.service';
 
 @Component({
     selector: 'app-root',
@@ -11,9 +12,11 @@ export class AppComponent implements OnInit {
     title = 'meme-db';
     files: string[] = [];
 
+    constructor (private fs: FolderFetchService) {
+    }
+
     ngOnInit(): void {
         this.title += " initialized"
-        invoke<string[]>('get_folders').then(() => {console.log("AAAAA")});
         //Create a pipeline from invoking 'get_folders'
         from(invoke<string[]>('get_folders'))
             //Flatten the array of folders to elements in the pipe
