@@ -10,7 +10,9 @@ export class TagFetchService {
     tagsNative: TagDetailsNative[] = [];
     tags: TagDetails[] = [];
 
-    constructor() { }
+    constructor() {
+        this.sample()
+     }
 
     public sample() {
         from(invoke<TagDetailsNative[]>('get_tags')).subscribe({
@@ -18,7 +20,7 @@ export class TagFetchService {
                 this.tagsNative = tags;
                 this.tags = [];
 
-                let id_lookup = new Map<number, TagDetails>();
+                let id_lookup = new Map<TagID, TagDetails>();
                 for (let tagN of tags) {
                     let tag: TagDetails = { id: tagN.id, name: tagN.name, parents: [] };
                     id_lookup.set(tagN.id, tag);
@@ -31,34 +33,39 @@ export class TagFetchService {
                         child.parents.push(parent);
                     }
                 }
+                this.tags = Array.from(id_lookup.values());
+                for (let obs of this.observers) {
+                    obs.next(this.tags);
+                }
             }
         })
     }
 
-    public getTags(): TagDetails[] {
-        return this.tags;
-    }
-
-    public subscribe(obs: Observer<TagDetails[]>) {
-        this.observers.push(obs)
-    }
-
-    public unsubscribe(obs: Observer<TagDetails[]>) {
-        const found = this.observers.findIndex((other, idx) => {
-            return obs == other
+    public getTags(): Observable<TagDetails[]> {
+        return new Observable((obs: Observer<TagDetails[]>) => {
+            this.observers.push(obs);
+            let observers = this.observers;
+            obs.next(this.tags);
+            return {
+                unsubscribe() {
+                    observers.splice(observers.indexOf(obs, 1));
+                }
+            };
         })
-        this.observers.splice(found, 1);
     }
 }
 
+export type TagID = number;
+
 export interface TagDetailsNative {
-    id: number;
-    name: String;
-    parents: number[];
+    id: TagID;
+    name: string;
+    parents: TagID[];
 }
 
 export interface TagDetails {
-    id: number;
-    name: String;
+    id: TagID;
+    name: string;
     parents: TagDetails[];
+    color?: string;
 }

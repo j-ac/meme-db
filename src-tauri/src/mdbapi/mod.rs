@@ -4,7 +4,36 @@ use std::vec::Vec;
 use serde::Serialize;
 //Stubs go here
 
-pub fn get_files(folder: FileID, a: usize, b: usize) -> Vec<FileDetails> {
+pub fn get_files_by_folder(folder: FileID, a: usize, b: usize) -> Vec<FileDetails> {
+    vec![
+        FileDetails {
+            id: 0,
+            name: "meme1.jpg".to_string(),
+            folder: 0,
+            tags: vec![0, 1],
+        },
+        FileDetails {
+            id: 1,
+            name: "meme2.jpg".to_string(),
+            folder: 0,
+            tags: vec![1],
+        },
+        FileDetails {
+            id: 2,
+            name: "meme3.jpg".to_string(),
+            folder: 0,
+            tags: vec![0],
+        },
+        FileDetails {
+            id: 3,
+            name: "meme4.jpg".to_string(),
+            folder: 0,
+            tags: vec![2],
+        },
+    ]
+}
+
+pub fn get_files_by_tag(tag: TagID, a: usize, b: usize) -> Vec<FileDetails> {
     vec![
         FileDetails {
             id: 0,
@@ -61,7 +90,27 @@ pub fn get_tags() -> Vec<TagDetails> {
         TagDetails {
             id: 2,
             name: "TagC".to_string(),
-            parents: vec![1, 2],
+            parents: vec![1, 0],
+        },
+        TagDetails {
+            id: 3,
+            name: "TagC1".to_string(),
+            parents: vec![2],
+        },
+        TagDetails {
+            id: 4,
+            name: "TagC2".to_string(),
+            parents: vec![2],
+        },
+        TagDetails {
+            id: 5,
+            name: "TagC3".to_string(),
+            parents: vec![2],
+        },
+        TagDetails {
+            id: 6,
+            name: "TagC31".to_string(),
+            parents: vec![5],
         },
     ]
 }

@@ -15,8 +15,17 @@ async fn get_folders() -> Vec<mdbapi::FolderDetails> {
 }
 
 #[tauri::command]
-async fn get_files(folder: mdbapi::FileID, a: usize, b: usize) -> Vec<mdbapi::FileDetails> {
-    mdbapi::get_files(folder, 0, 0)
+async fn get_files_by_folder(
+    folder: mdbapi::FileID,
+    a: usize,
+    b: usize,
+) -> Vec<mdbapi::FileDetails> {
+    mdbapi::get_files_by_folder(folder, 0, 0)
+}
+
+#[tauri::command]
+async fn get_files_by_tag(tag: mdbapi::TagID, a: usize, b: usize) -> Vec<mdbapi::FileDetails> {
+    mdbapi::get_files_by_tag(tag, 0, 0)
 }
 
 #[tauri::command]
@@ -47,7 +56,12 @@ fn get_binary_config() -> BinaryConfig {}
 fn main() {
     enforce_daemon();
     tauri::Builder::default()
-        .invoke_handler(generate_handler![get_folders, get_files, get_tags])
+        .invoke_handler(generate_handler![
+            get_folders,
+            get_files_by_folder,
+            get_files_by_tag,
+            get_tags,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

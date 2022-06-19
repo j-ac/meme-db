@@ -1,7 +1,15 @@
-<h1>Henlo?</h1>
-<h2>{{this.title}}</h2>
-<ul>
-    <li *ngFor="let f of this.files">{{f}}</li>
-</ul>
-
-<router-outlet></router-outlet>
+<tui-theme-night></tui-theme-night>
+    <tui-root tuiMode="onDark">
+        <div class="float-container">
+            <div class="float-child">
+                <div class="green">
+                    <app-tags-view></app-tags-view>
+                   
+                </div>
+            </div>
+            <div class="float-child">
+                <div class="blue">Float Column 2</div>
+            </div>
+        </div>
+        <router-outlet></router-outlet>
+    </tui-root>

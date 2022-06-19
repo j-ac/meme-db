@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { invoke } from '@tauri-apps/api';
-import { from, Observer } from 'rxjs';
+import { from, Observable, Observer } from 'rxjs';
+import { FileID } from '../files/file-fetch.service';
 
 @Injectable({
     providedIn: 'root'
@@ -22,23 +23,20 @@ export class FolderFetchService {
         })
     }
 
-    public getFolders() {
-        return this.folders;
-    }
-
-    public subscribe(obs: Observer<FolderDetails[]>) {
-        this.observers.push(obs);
-    }
-
-    public unsubscribe(obs: Observer<FolderDetails[]>) {
-        const found = this.observers.findIndex((other, idx) => {
-            return obs == other
+    public getFolders(): Observable<FolderDetails[]> {
+        return new Observable((obs: Observer<FolderDetails[]>) => {
+            this.observers.push(obs);
+            let observers = this.observers;
+            return {
+                unsubscribe() {
+                    observers.splice(observers.indexOf(obs, 1));
+                }
+            };
         })
-        this.observers.splice(found, 1);
     }
 }
 
 export interface FolderDetails {
-    id: number;
+    id: FileID;
     path: string;
 }
