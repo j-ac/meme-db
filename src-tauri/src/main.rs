@@ -3,11 +3,13 @@
     windows_subsystem = "windows"
 )]
 
-use std::{path::PathBuf, vec::Vec};
+use std::{fs::File, io::Read, path::PathBuf, vec::Vec};
 use sysinfo::{ProcessExt, System, SystemExt};
 use tauri::generate_handler;
 
 mod mdbapi;
+
+/* FRONT END API FUNCTIONS */
 
 #[tauri::command]
 async fn get_folders() -> Vec<mdbapi::FolderDetails> {
@@ -32,6 +34,27 @@ async fn get_files_by_tag(tag: mdbapi::TagID, a: usize, b: usize) -> Vec<mdbapi:
 async fn get_tags() -> Vec<mdbapi::TagDetails> {
     mdbapi::get_tags()
 }
+
+#[tauri::command]
+async fn load_image(file: mdbapi::FileID) -> String {
+    let mut retval = Vec::new();
+    let f = match file {
+        0 => "C:/Users/Ben/Pictures/meme1.jpg",
+        1 => "C:/Users/Ben/Pictures/meme2.jpg",
+        2 => "C:/Users/Ben/Pictures/meme3.jpg",
+        3 => "C:/Users/Ben/Pictures/meme4.jpg",
+        _ => "C:/Users/Ben/Pictures/meme1.jpg",
+    };
+    match File::open(f).and_then(|mut im_file: File| {
+        let rd = im_file.read_to_end(&mut retval);
+        return rd;
+    }) {
+        Ok(_) => base64::encode(retval),
+        Err(_) => String::new(),
+    }
+}
+
+/* APPLICATION FUNCTIONS */
 
 struct BinaryConfig {
     daemon_location: PathBuf,
@@ -61,6 +84,7 @@ fn main() {
             get_files_by_folder,
             get_files_by_tag,
             get_tags,
+            load_image,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

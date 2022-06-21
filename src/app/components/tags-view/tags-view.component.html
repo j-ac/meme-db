@@ -1,7 +1,8 @@
-<tui-tree [tuiTreeController]="true" [value]="root" [content]="content" [childrenHandler]="handler"></tui-tree>
-
-<ng-template #content let-value let-node="node">
-    <div class="wrapper">
-        <tui-tag [value]="value.name" [style.background-color]="value.color || 'red'"></tui-tag>
-    </div>
-</ng-template>
+<tui-island class="tui-island__paragraph">
+    <tui-tree [tuiTreeController]="true" [value]="root" [content]="content" [childrenHandler]="handler"></tui-tree>
+    <ng-template #content let-value let-node="node">
+        <div class="wrapper">
+            <tui-tag [value]="value.name" [style.background-color]="value.color || 'red'"></tui-tag>
+        </div>
+    </ng-template>
+</tui-island>

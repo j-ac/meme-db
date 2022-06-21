@@ -1,15 +1,21 @@
 <tui-theme-night></tui-theme-night>
-    <tui-root tuiMode="onDark">
-        <div class="float-container">
-            <div class="float-child">
-                <div class="green">
-                    <app-tags-view></app-tags-view>
-                   
-                </div>
-            </div>
-            <div class="float-child">
-                <div class="blue">Float Column 2</div>
-            </div>
+<tui-root tuiMode="onDark">
+    <div class="float-container">
+        <div class="float-child">
+            <tui-island class="tui-island__paragraph">
+                <tui-tabs>
+                    <a tuiTab [routerLink]="['', { outlets: { view1: ['tags']}}]" routerLinkActive="active">Tags</a>
+                    <a tuiTab [routerLink]="['', { outlets: { view1: ['files']}}]" routerLinkActive="active">Files</a>
+                    <a tuiTab [routerLink]="['', { outlets: { view1: ['folders']}}]"
+                        routerLinkActive="active">Folders</a>
+                </tui-tabs>
+                <router-outlet name="view1"></router-outlet>
+            </tui-island>
         </div>
-        <router-outlet></router-outlet>
-    </tui-root>
+        <div class="float-child">
+            <app-image-view></app-image-view>
+        </div>
+    </div>
+
+    <router-outlet></router-outlet>
+</tui-root>
