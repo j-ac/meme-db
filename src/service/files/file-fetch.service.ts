@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { invoke } from '@tauri-apps/api';
-import { from, map, Observable, Observer, tap } from 'rxjs';
-import { TagID } from '../tags/tag-fetch.service';
+import { from, map, Observable, Observer, of, tap } from 'rxjs';
+import { TagDetails, TagFetchService, TagID } from '../tags/tag-fetch.service';
+import { GeneralResult } from '../util/util';
 
 @Injectable({
     providedIn: 'root'
@@ -10,7 +11,7 @@ export class FileFetchService {
     files: FileDetailsNative[] = [];
     image_cache = new Map<FileID, CacheEntry>();
 
-    constructor() {
+    constructor(private tagFetch: TagFetchService) {
         setInterval(() => {
             const now = Date.now()
             for (let [k, v] of this.image_cache) {
@@ -21,12 +22,39 @@ export class FileFetchService {
         }, 200)
     }
 
-    public getFilesByFolder(folder: FileID, a: number, b: number): Observable<FileDetailsNative[]> {
+    public getFilesByFolderNative(folder: FileID, a: number, b: number): Observable<FileDetailsNative[]> {
         return from(invoke<FileDetailsNative[]>('get_files_by_folder', { folder: folder, a: a, b: b }));
     }
 
-    public getFilesByTag(tag: TagID, a: number, b: number): Observable<FileDetailsNative[]> {
+    public getFilesByTagNative(tag: TagID, a: number, b: number): Observable<FileDetailsNative[]> {
         return from(invoke<FileDetailsNative[]>('get_files_by_tag', { tag: tag, a: a, b: b }));
+    }
+
+    private convertFromNative(native: FileDetailsNative[]): FileDetails[] {
+        let ret: FileDetails[] = [];
+        for (let n of native) {
+            let toAdd: FileDetails = { folder: n.folder, name: n.name, id: n.id, tags: [] };
+            for (let t of n.tags) {
+                // We must ensure that tags always get updated before files do.
+                toAdd.tags.push(this.tagFetch.getTagByID(t)!);
+            }
+            ret.push(toAdd);
+        }
+        return ret;
+    }
+
+    public getFilesByFolder(folder: FileID, a: number, b: number): Observable<FileDetails[]> {
+        return this.getFilesByFolderNative(folder, a, b)
+            .pipe(map((native) => {
+                return this.convertFromNative(native);
+            }))
+    }
+
+    public getFilesByTag(tag: TagID, a: number, b: number): Observable<FileDetails[]> {
+        return this.getFilesByTagNative(tag, a, b)
+            .pipe(map((native) => {
+                return this.convertFromNative(native);
+            }))
     }
 
     public getImage(file: FileID): Observable<HTMLImageElement> {
@@ -60,6 +88,10 @@ export class FileFetchService {
         }).catch((reason) => reject(reason))
         return from(retval)
     }
+
+    public addTag(file: FileID, tag: TagID): Observable<GeneralResult> {
+        return from(invoke<GeneralResult>('add_file_tag', {file: file, tag: tag}))
+    }
 }
 
 export type FileID = number;
@@ -70,13 +102,29 @@ export interface FileDetailsNative {
     tags: TagID[];
 }
 
-interface LoadedImage {
+export interface FileDetails {
+    id: FileID;
+    name: string;
+    folder: FileID;
+    tags: TagDetails[];
+}
+
+export interface LoadedImage {
     id: FileID;
     b64_data: string;
     format: string;
 }
 
+export interface FileQuery {
+    tags_include?: TagID[];
+    tags_exclude?: TagID[];
+    folders_include?: FileID[];
+    folders_exclude?: FileID[];
+    names?: string[];
+    ids?: FileID[];
+}
+
 class CacheEntry {
     public timestamp: number = Date.now()
-    constructor(public image: HTMLImageElement) {}
+    constructor(public image: HTMLImageElement) { }
 }

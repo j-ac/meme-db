@@ -143,9 +143,27 @@ pub struct FolderDetails {
 }
 #[derive(Debug, Serialize)]
 pub struct TagDetails {
-    id: TagID,
-    name: String,
-    parents: Vec<TagID>,
+    pub id: TagID,
+    pub name: String,
+    pub parents: Vec<TagID>,
+}
+#[derive(Debug, Serialize)]
+pub struct LoadedImage {
+    id: FileID,
+    b64_data: String,
+    format: String,
+}
+
+impl LoadedImage {
+    pub fn new(id: FileID, b64_data: String, format: String) -> LoadedImage {
+        LoadedImage { id: (id), b64_data: (b64_data), format: (format) }
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct GeneralResult {
+    pub res: i32,
+    pub res_str: String,
 }
 
 pub mod daemon {

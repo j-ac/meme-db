@@ -3,6 +3,7 @@
     windows_subsystem = "windows"
 )]
 
+use mdbapi::{GeneralResult, LoadedImage};
 use std::{fs::File, io::Read, path::PathBuf, vec::Vec};
 use sysinfo::{ProcessExt, System, SystemExt};
 use tauri::generate_handler;
@@ -36,7 +37,22 @@ async fn get_tags() -> Vec<mdbapi::TagDetails> {
 }
 
 #[tauri::command]
-async fn load_image(file: mdbapi::FileID) -> String {
+async fn add_file_tag(file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::GeneralResult {
+    if file == 0 && tag == 0 {
+        GeneralResult {
+            res: -1,
+            res_str: "FUCK!".to_string(),
+        }
+    } else {
+        GeneralResult {
+            res: 0,
+            res_str: "All good my G.".to_string(),
+        }
+    }
+}
+
+#[tauri::command]
+async fn load_image(file: mdbapi::FileID) -> mdbapi::LoadedImage {
     let mut retval = Vec::new();
     let f = match file {
         0 => "C:/Users/Ben/Pictures/meme1.jpg",
@@ -45,13 +61,14 @@ async fn load_image(file: mdbapi::FileID) -> String {
         3 => "C:/Users/Ben/Pictures/meme4.jpg",
         _ => "C:/Users/Ben/Pictures/meme1.jpg",
     };
-    match File::open(f).and_then(|mut im_file: File| {
+    let b64_string = match File::open(f).and_then(|mut im_file: File| {
         let rd = im_file.read_to_end(&mut retval);
         return rd;
     }) {
         Ok(_) => base64::encode(retval),
         Err(_) => String::new(),
-    }
+    };
+    mdbapi::LoadedImage::new(file, b64_string, "jpg".to_string())
 }
 
 /* APPLICATION FUNCTIONS */
@@ -84,6 +101,7 @@ fn main() {
             get_files_by_folder,
             get_files_by_tag,
             get_tags,
+            add_file_tag,
             load_image,
         ])
         .run(tauri::generate_context!())

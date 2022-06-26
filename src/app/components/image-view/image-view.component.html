@@ -1,5 +1,12 @@
-
-<tui-island class="tui-island__paragraph">
-    <img [src]="image_src" alt="Meme">
+<tui-island class="tui-island__paragraph" style="margin-top: 5px;">
+    <h2 class="tui-island__title">{{this.image?.name || "Please open file"}}</h2>
+    <div *ngIf="this.imagePresent()" cdkDropList (cdkDropListDropped)="this.drop($event)" cdkDropListSortingDisabled>
+        <img #display_image style="width: 100%;">
+        <div>
+            <div *ngFor="let t of this.image?.tags" style="display: inline-block; padding: 1px;" cdkDrag
+                [cdkDragData]="t">
+                <tui-tag [value]="t.name" [style.background-color]="t.color || 'red'"></tui-tag>
+            </div>
+        </div>
+    </div>
 </tui-island>
-

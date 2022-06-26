@@ -60,4 +60,8 @@ export class TagsViewComponent implements OnInit {
     readonly handler: TuiHandler<TagDetails, readonly TagDetails[]> = item => {
         return this.child_lookup.get(item.id) || EMPTY_ARRAY;
     }
+
+    falsePred(): boolean {
+        return false;
+    }
 }

@@ -1,9 +1,9 @@
-import { Component, OnInit } from '@angular/core';
-import { map, merge, tap } from 'rxjs';
-import { FileFetchService, FileDetailsNative } from 'src/service/files/file-fetch.service';
-import { FolderDetails, FolderFetchService } from 'src/service/folders/folder-fetch.service';
-import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
-import { convertFileSrc } from '@tauri-apps/api/tauri';
+import { CdkDrag, CdkDragDrop } from '@angular/cdk/drag-drop';
+import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
+import { TuiAlertService, TuiNotification } from '@taiga-ui/core';
+import { switchMap } from 'rxjs';
+import { FileFetchService, FileDetails } from 'src/service/files/file-fetch.service';
+import { TagDetails, TagFetchService, TagID } from 'src/service/tags/tag-fetch.service';
 
 
 @Component({
@@ -12,28 +12,55 @@ import { convertFileSrc } from '@tauri-apps/api/tauri';
     styleUrls: ['./image-view.component.scss']
 })
 export class ImageViewComponent implements OnInit {
-    image_src?: SafeUrl
-    images: FileDetailsNative[] = []
-    folders: FolderDetails[] = []
+    @ViewChild("display_image") private display_image: ElementRef<HTMLImageElement> = {} as ElementRef
+    image: FileDetails | undefined;
 
     constructor(
         private fileFetch: FileFetchService,
-        private folderFetch: FolderFetchService,) { }
+        private tags: TagFetchService,
+        private alert: TuiAlertService,
+    ) {
+
+    }
 
     ngOnInit(): void {
-        let imChange = this.fileFetch.getFilesByFolder(0, 0, 100).pipe(map((images) => {
-            this.images = images;
-        }))
-        let fChange = this.folderFetch.getFolders().pipe(map((folders) => {
-            this.folders = folders;
-        }))
-        merge(imChange, fChange).subscribe({
-            next: () => {
-                if (this.images.length > 0 && this.folders.length > 0) {
-                    const path = this.folders[0].path + this.images[0].name;
-                    this.image_src = convertFileSrc(path);
-                }
-            }
+    }
+
+    @Input("image") set setImage(img: FileDetails | undefined) {
+        if (img === undefined)
+            return;
+        this.image = {
+            folder: img.folder,
+            id: img.id,
+            name: img.name,
+            tags: this.tags.getFlattened(img.tags),
+        };
+        this.fileFetch.getImage(this.image.id).subscribe((image) => {
+            this.display_image.nativeElement.src = image.src;
         })
+    }
+
+    public drop(event: CdkDragDrop<TagDetails>) {
+        if (this.image === undefined) {
+            return;
+        }
+        if (event.container == event.previousContainer) {
+            return;
+        }
+        this.fileFetch.addTag(this.image.id, event.item.data.id).pipe(switchMap(
+            (res) => {
+                if (res.res < 0) {
+                    return this.alert.open(res.res_str,
+                        { label: "Failed to add tag!", status: TuiNotification.Error, autoClose: false, });
+                }
+                this.image?.tags.push(event.item.data);
+                return this.alert.open(res.res_str,
+                    { label: "Success!", status: TuiNotification.Success });
+            }
+        )).subscribe();
+    }
+
+    public imagePresent() {
+        return this.image !== undefined;
     }
 }

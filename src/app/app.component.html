@@ -1,21 +1,13 @@
 <tui-theme-night></tui-theme-night>
-<tui-root tuiMode="onDark">
+<tui-root tuiMode="onDark" cdkDropListGroup>
     <div class="float-container">
         <div class="float-child">
-            <tui-island class="tui-island__paragraph">
-                <tui-tabs>
-                    <a tuiTab [routerLink]="['', { outlets: { view1: ['tags']}}]" routerLinkActive="active">Tags</a>
-                    <a tuiTab [routerLink]="['', { outlets: { view1: ['files']}}]" routerLinkActive="active">Files</a>
-                    <a tuiTab [routerLink]="['', { outlets: { view1: ['folders']}}]"
-                        routerLinkActive="active">Folders</a>
-                </tui-tabs>
-                <router-outlet name="view1"></router-outlet>
-            </tui-island>
+            <app-tags-view></app-tags-view>
+            <app-files-view (selectedFile)="this.fileSelectEvent($event)"></app-files-view>
         </div>
         <div class="float-child">
-            <app-image-view></app-image-view>
+            <app-image-view [image]="this.selectedFile"></app-image-view>
         </div>
     </div>
-
     <router-outlet></router-outlet>
 </tui-root>
