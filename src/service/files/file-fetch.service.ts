@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
+import { TuiAlertService, TuiNotification } from '@taiga-ui/core';
 import { invoke } from '@tauri-apps/api';
 import { from, map, Observable, Observer, of, tap } from 'rxjs';
 import { TagDetails, TagFetchService, TagID } from '../tags/tag-fetch.service';
-import { GeneralResult } from '../util/util';
+import { GUIResult } from '../util/util';
 
 @Injectable({
     providedIn: 'root'
@@ -78,19 +79,22 @@ export class FileFetchService {
             })
         }
 
-        invoke<LoadedImage>('load_image', { file: file }).then((image_data) => {
+        invoke<GUIResult<LoadedImage>>('load_image', { file: file }).then((image_data) => {
+            if (image_data.Err !== undefined) {
+                throw image_data.Err.gui_msg;
+            }
             let image = new Image();
             image.onload = () => {
                 this.image_cache.set(file, new CacheEntry(image));
                 fulfill(image)
             }
-            image.src = `data:image/${image_data.format};base64,${image_data.b64_data}`;
+            image.src = `data:image/${image_data.Ok!.format};base64,${image_data.Ok!.b64_data}`;
         }).catch((reason) => reject(reason))
         return from(retval)
     }
 
-    public addTag(file: FileID, tag: TagID): Observable<GeneralResult> {
-        return from(invoke<GeneralResult>('add_file_tag', {file: file, tag: tag}))
+    public addTag(file: FileID, tag: TagID): Observable<GUIResult<any>> {
+        return from(invoke<GUIResult<any>>('add_file_tag', { file: file, tag: tag }))
     }
 }
 

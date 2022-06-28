@@ -35,8 +35,17 @@ export class ImageViewComponent implements OnInit {
             name: img.name,
             tags: this.tags.getFlattened(img.tags),
         };
-        this.fileFetch.getImage(this.image.id).subscribe((image) => {
-            this.display_image.nativeElement.src = image.src;
+        this.fileFetch.getImage(this.image.id).subscribe({
+            next: (image) => {
+                this.display_image.nativeElement.src = image.src;
+            },
+            error: (err) => {
+                this.alert.open(err,
+                    {
+                        label: "Failed to load image!",
+                        status: TuiNotification.Error, autoClose: false,
+                    }).subscribe();
+            }
         })
     }
 
@@ -49,12 +58,12 @@ export class ImageViewComponent implements OnInit {
         }
         this.fileFetch.addTag(this.image.id, event.item.data.id).pipe(switchMap(
             (res) => {
-                if (res.res < 0) {
-                    return this.alert.open(res.res_str,
+                if (res.Err !== undefined) {
+                    return this.alert.open(res.Err.gui_msg,
                         { label: "Failed to add tag!", status: TuiNotification.Error, autoClose: false, });
                 }
                 this.image?.tags.push(event.item.data);
-                return this.alert.open(res.res_str,
+                return this.alert.open("Tag added to",
                     { label: "Success!", status: TuiNotification.Success });
             }
         )).subscribe();

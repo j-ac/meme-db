@@ -1,10 +1,10 @@
 
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use std::vec::Vec;
 use serde::Serialize;
 //Stubs go here
 
-pub fn get_files_by_folder(folder: FileID, a: usize, b: usize) -> Vec<FileDetails> {
+pub fn get_files_by_folder(database: DatabaseID, folder: FileID, a: usize, b: usize) -> Vec<FileDetails> {
     vec![
         FileDetails {
             id: 0,
@@ -33,7 +33,7 @@ pub fn get_files_by_folder(folder: FileID, a: usize, b: usize) -> Vec<FileDetail
     ]
 }
 
-pub fn get_files_by_tag(tag: TagID, a: usize, b: usize) -> Vec<FileDetails> {
+pub fn get_files_by_tag(database: DatabaseID, tag: TagID, a: usize, b: usize) -> Vec<FileDetails> {
     vec![
         FileDetails {
             id: 0,
@@ -62,7 +62,7 @@ pub fn get_files_by_tag(tag: TagID, a: usize, b: usize) -> Vec<FileDetails> {
     ]
 }
 
-pub fn get_folders() -> Vec<FolderDetails> {
+pub fn get_folders(database: DatabaseID) -> Vec<FolderDetails> {
     vec![
         FolderDetails {
             id: 0,
@@ -75,7 +75,15 @@ pub fn get_folders() -> Vec<FolderDetails> {
     ]
 }
 
-pub fn get_tags() -> Vec<TagDetails> {
+pub fn add_folder<P: AsRef<Path>>(database: DatabaseID, location: P) -> Result<FileID> {
+    todo!("add_folder not implemented!")
+}
+
+pub fn del_folder(database: DatabaseID, folder: FileID) -> Result<()> {
+    todo!("del_folder not implemented!")
+}
+
+pub fn get_tags(database: DatabaseID) -> Vec<TagDetails> {
     vec![
         TagDetails {
             id: 0,
@@ -114,17 +122,8 @@ pub fn get_tags() -> Vec<TagDetails> {
         },
     ]
 }
-// fn post_tag(name: String, parents: Optional<Vec<TagID>>) -> Result<TagDetails>
-// fn delete_tag(tag: TagID) -> bool
-// fn patch_tag_add_parents(tag: TagID, parents: Vec<TagID>) -> Result<TagDetails>
-// fn patch_tag_del_parents(tag: TagID, parents: Vec<TagID>) -> Result<TagDetails>
-// fn patch_tag_name(tag: TagID, name: String) -> Result<TagDetails>
 
-// fn patch_file_tags(file: FileID, tags_add: Vec<TagID>) -> Result<FileDetails>
-// fn delete_file_tags(file: FileID, tags_removed: Vec<TagID>) -> Result<FileDetails>
-// fn purge_file_tags(file: FileID) -> Result<FileDetails>
-// fn put_file_tags(file: FileID, tags: Vec<TagID>) -> Result<FileDetails>
-
+pub type DatabaseID = usize;
 pub type FileID = usize;
 pub type TagID = usize;
 
@@ -147,6 +146,13 @@ pub struct TagDetails {
     pub name: String,
     pub parents: Vec<TagID>,
 }
+
+#[derive(Debug, Serialize)]
+pub struct DatabaseDetails {
+    pub id: DatabaseID,
+    pub name: String,
+    //Others that may be needed
+}
 #[derive(Debug, Serialize)]
 pub struct LoadedImage {
     id: FileID,
@@ -161,9 +167,31 @@ impl LoadedImage {
 }
 
 #[derive(Debug, Serialize)]
-pub struct GeneralResult {
-    pub res: i32,
-    pub res_str: String,
+pub struct Error {
+    gui_msg: String,
+    err_type: ErrorType,
+}
+
+#[derive(Debug, Serialize)]
+pub enum ErrorType {
+    Basic,
+    Arguments,
+    Internal,
+    Filesystem,
+    Database,
+    SysAPI,
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+impl Error {
+    pub fn basic_str<T>(gui_msg: &'static str) -> Result<T> {
+        Result::Err(Error { gui_msg: gui_msg.to_string(), err_type: ErrorType::Basic })
+    }
+
+    pub fn basic<T>(gui_msg: String) -> Result<T> {
+        Result::Err(Error { gui_msg: gui_msg, err_type: ErrorType::Basic })
+    }
 }
 
 pub mod daemon {

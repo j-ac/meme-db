@@ -3,7 +3,7 @@
     windows_subsystem = "windows"
 )]
 
-use mdbapi::{GeneralResult, LoadedImage};
+use mdbapi::{DatabaseDetails, DatabaseID};
 use std::{fs::File, io::Read, path::PathBuf, vec::Vec};
 use sysinfo::{ProcessExt, System, SystemExt};
 use tauri::generate_handler;
@@ -11,10 +11,28 @@ use tauri::generate_handler;
 mod mdbapi;
 
 /* FRONT END API FUNCTIONS */
+/* FRONT END TAG API */
+
+#[tauri::command]
+async fn get_tags() -> Vec<mdbapi::TagDetails> {
+    mdbapi::get_tags(0)
+}
+
+/* FRONT END TAG API END*/
+/* FRONT END FILE API */
+
+#[tauri::command]
+async fn add_file_tag(file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::Result<()> {
+    if file == 0 && tag == 0 {
+        mdbapi::Error::basic_str("FUCK!")
+    } else {
+        Result::Ok(())
+    }
+}
 
 #[tauri::command]
 async fn get_folders() -> Vec<mdbapi::FolderDetails> {
-    mdbapi::get_folders()
+    mdbapi::get_folders(0)
 }
 
 #[tauri::command]
@@ -23,36 +41,44 @@ async fn get_files_by_folder(
     a: usize,
     b: usize,
 ) -> Vec<mdbapi::FileDetails> {
-    mdbapi::get_files_by_folder(folder, 0, 0)
+    mdbapi::get_files_by_folder(0, folder, 0, 0)
 }
 
 #[tauri::command]
 async fn get_files_by_tag(tag: mdbapi::TagID, a: usize, b: usize) -> Vec<mdbapi::FileDetails> {
-    mdbapi::get_files_by_tag(tag, 0, 0)
+    mdbapi::get_files_by_tag(0, tag, 0, 0)
+}
+
+/* FRONT END FILE API END */
+/* FRONT END DATABASE API */
+#[tauri::command]
+async fn get_databases() -> Vec<mdbapi::DatabaseDetails> {
+    return vec![mdbapi::DatabaseDetails {
+        id: 0,
+        name: "global".to_string(),
+    }];
 }
 
 #[tauri::command]
-async fn get_tags() -> Vec<mdbapi::TagDetails> {
-    mdbapi::get_tags()
+async fn add_database(name: String) -> mdbapi::Result<DatabaseDetails> {
+    return mdbapi::Error::basic_str("Not implemented!");
 }
 
 #[tauri::command]
-async fn add_file_tag(file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::GeneralResult {
-    if file == 0 && tag == 0 {
-        GeneralResult {
-            res: -1,
-            res_str: "FUCK!".to_string(),
-        }
-    } else {
-        GeneralResult {
-            res: 0,
-            res_str: "All good my G.".to_string(),
-        }
-    }
+async fn del_database(id: DatabaseID) -> mdbapi::Result<()> {
+    return mdbapi::Error::basic_str("Not implemented!");
 }
 
 #[tauri::command]
-async fn load_image(file: mdbapi::FileID) -> mdbapi::LoadedImage {
+async fn rename_database(id: DatabaseID, new_name: String) -> mdbapi::Result<()> {
+    return mdbapi::Error::basic_str("Not implemented!");
+}
+
+/* FRONT END DATABASE API END */
+/* FRONT END MISC API */
+
+#[tauri::command]
+async fn load_image(file: mdbapi::FileID) -> mdbapi::Result<mdbapi::LoadedImage> {
     let mut retval = Vec::new();
     let f = match file {
         0 => "C:/Users/Ben/Pictures/meme1.jpg",
@@ -66,10 +92,16 @@ async fn load_image(file: mdbapi::FileID) -> mdbapi::LoadedImage {
         return rd;
     }) {
         Ok(_) => base64::encode(retval),
-        Err(_) => String::new(),
+        Err(e) => return mdbapi::Error::basic(std::format!("read_to_end failed: {e}")),
     };
-    mdbapi::LoadedImage::new(file, b64_string, "jpg".to_string())
+    Result::Ok(mdbapi::LoadedImage::new(
+        file,
+        b64_string,
+        "jpg".to_string(),
+    ))
 }
+/* FRONT END MISC API END */
+/* FRONT END API FUNCTIONS */
 
 /* APPLICATION FUNCTIONS */
 
@@ -97,11 +129,19 @@ fn main() {
     enforce_daemon();
     tauri::Builder::default()
         .invoke_handler(generate_handler![
+            //TAG API
+            get_tags,
+            //FILE API
             get_folders,
             get_files_by_folder,
             get_files_by_tag,
-            get_tags,
             add_file_tag,
+            //DATABASE API
+            get_databases,
+            add_database,
+            del_database,
+            rename_database,
+            //MISC API
             load_image,
         ])
         .run(tauri::generate_context!())

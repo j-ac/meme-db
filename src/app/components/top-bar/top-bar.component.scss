@@ -1,0 +1,32 @@
+
+.top-bar {
+    width: 100%;
+    background-color: #333333;
+}
+
+.db-label {
+    font-size: 2ch;
+    display: inline-block;
+    padding: 4px;
+    padding-left: 19px;
+    top: 11px;
+    position: relative;
+}
+
+.db-select {
+    max-width: 30ch;
+    width: 30ch;
+    padding: 4px;
+    top: 5px;
+    padding-left: 10px;
+    display: inline-block;
+    position: relative;
+    align-self: center;
+}
+
+.db-add {
+    top: 4px;
+    left: -2px;
+    position: relative;
+    display: inline-block;
+}

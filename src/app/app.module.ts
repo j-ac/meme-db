@@ -2,8 +2,8 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { TuiAlertModule, TuiDialogModule, TuiGroupModule, TuiRootModule } from '@taiga-ui/core';
-import { TuiInputModule, TuiIslandModule, TuiTreeModule } from '@taiga-ui/kit';
+import { TuiAlertModule, TuiButtonModule, TuiDataListModule, TuiDialogModule, TuiGroupModule, TuiPrimitiveTextfieldModule, TuiRootModule, TuiTextfieldControllerModule } from '@taiga-ui/core';
+import { TuiDataListWrapperModule, TuiInputModule, TuiIslandModule, TuiSelectModule, TuiTextAreaModule, TuiTreeModule } from '@taiga-ui/kit';
 import { TuiThemeNightModule, TuiModeModule } from '@taiga-ui/core';
 import { TagsViewComponent } from './components/tags-view/tags-view.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -14,6 +14,7 @@ import { FilesViewComponent } from './components/files-view/files-view.component
 import { FoldersViewComponent } from './components/folders-view/folders-view.component';
 import { ReactiveFormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
+import { TopBarComponent } from './components/top-bar/top-bar.component';
 
 
 
@@ -26,6 +27,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
         ImageViewComponent,
         FilesViewComponent,
         FoldersViewComponent,
+        TopBarComponent,
     ],
     imports: [
         //Angular built-ins
@@ -46,6 +48,13 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
         TuiTabsModule,
         TuiGroupModule,
         TuiInputModule,
+        TuiSelectModule,
+        TuiDataListModule,
+        TuiDataListWrapperModule,
+        TuiTextAreaModule,
+        TuiPrimitiveTextfieldModule,
+        TuiTextfieldControllerModule,
+        TuiButtonModule,
     ],
     providers: [],
     bootstrap: [AppComponent]
