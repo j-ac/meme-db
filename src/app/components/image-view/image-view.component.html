@@ -2,7 +2,7 @@
     <h2 class="tui-island__title">{{this.image?.name || "Please open file"}}</h2>
     <div *ngIf="this.imagePresent()" cdkDropList (cdkDropListDropped)="this.drop($event)" cdkDropListSortingDisabled>
         <tui-scrollbar class="box">
-            <img #display_image style="width: 100%;">
+            <img #display_image class="center">
         </tui-scrollbar>
         <div>
             <div *ngFor="let t of this.image?.tags" style="display: inline-block; padding: 1px;" cdkDrag
