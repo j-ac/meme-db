@@ -3,7 +3,7 @@
     windows_subsystem = "windows"
 )]
 
-use mdbapi::{DatabaseDetails, DatabaseID};
+use mdbapi::{DatabaseDetails, DatabaseID, GUIResult};
 use std::{fs::File, io::Read, path::PathBuf, vec::Vec};
 use sysinfo::{ProcessExt, System, SystemExt};
 use tauri::generate_handler;
@@ -26,7 +26,7 @@ async fn add_file_tag(file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::Resul
     if file == 0 && tag == 0 {
         mdbapi::Error::basic_str("FUCK!")
     } else {
-        Result::Ok(())
+        GUIResult::Ok(())
     }
 }
 
@@ -94,7 +94,7 @@ async fn load_image(file: mdbapi::FileID) -> mdbapi::Result<mdbapi::LoadedImage>
         Ok(_) => base64::encode(retval),
         Err(e) => return mdbapi::Error::basic(std::format!("read_to_end failed: {e}")),
     };
-    Result::Ok(mdbapi::LoadedImage::new(
+    GUIResult::Ok(mdbapi::LoadedImage::new(
         file,
         b64_string,
         "jpg".to_string(),

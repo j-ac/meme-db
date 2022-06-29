@@ -17,7 +17,7 @@ export class DatabaseService implements OnInit {
     public by_name = new Map<string, DatabaseDetails>()
 
     constructor() {
-        let builtin: DatabaseDetails = { id: 0, name: "built-in" };
+        let builtin: DatabaseDetails = { id: 0, name: "Built-in" };
         this.by_id.set(0, builtin);
         this.by_name.set(builtin.name, builtin);
     }
@@ -40,11 +40,11 @@ export class DatabaseService implements OnInit {
     }
 
     getUsedDatabase(): DatabaseDetails {
-        return this.by_id.get(this.selected_database) || { id: 0, name: "built-in" };
+        return this.by_id.get(this.selected_database) || { id: 0, name: "Built-in" };
     }
 
     addDatabase(new_name: string): Observable<DatabaseDetails> {
-        return from(invoke<GUIResult<DatabaseDetails>>('add_database')).pipe(map(
+        return from(invoke<GUIResult<DatabaseDetails>>('add_database', { name: new_name })).pipe(map(
             (res) => {
                 if (res.Err !== undefined || res.Ok === undefined) {
                     throw res?.Err?.gui_msg || "Critical backend failure";

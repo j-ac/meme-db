@@ -182,7 +182,14 @@ pub enum ErrorType {
     SysAPI,
 }
 
-pub type Result<T> = std::result::Result<T, Error>;
+//Serde's serialization implementation for std::Result flattens (this does not)
+#[derive(Debug, Serialize)]
+pub enum GUIResult<T,E> {
+    Ok(T),
+    Err(E),
+}
+
+pub type Result<T> = GUIResult<T, Error>;
 
 impl Error {
     pub fn basic_str<T>(gui_msg: &'static str) -> Result<T> {
