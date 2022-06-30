@@ -23,12 +23,12 @@ export class FileFetchService {
         }, 200)
     }
 
-    public getFilesByFolderNative(folder: FileID, a: number, b: number): Observable<FileDetailsNative[]> {
-        return from(invoke<FileDetailsNative[]>('get_files_by_folder', { folder: folder, a: a, b: b }));
+    public getFilesByFolderNative(folder: FileID, start: FileID, limit: number): Observable<FileDetailsNative[]> {
+        return from(invoke<FileDetailsNative[]>('get_files_by_folder', { folder: folder, start: start, limit: limit }));
     }
 
-    public getFilesByTagNative(tag: TagID, a: number, b: number): Observable<FileDetailsNative[]> {
-        return from(invoke<FileDetailsNative[]>('get_files_by_tag', { tag: tag, a: a, b: b }));
+    public getFilesByTagNative(tag: TagID, start: FileID, limit: number): Observable<FileDetailsNative[]> {
+        return from(invoke<FileDetailsNative[]>('get_files_by_tag', { tag: tag, start: start, limit: limit }));
     }
 
     private convertFromNative(native: FileDetailsNative[]): FileDetails[] {
@@ -44,15 +44,15 @@ export class FileFetchService {
         return ret;
     }
 
-    public getFilesByFolder(folder: FileID, a: number, b: number): Observable<FileDetails[]> {
-        return this.getFilesByFolderNative(folder, a, b)
+    public getFilesByFolder(folder: FileID, start: FileID, limit: number): Observable<FileDetails[]> {
+        return this.getFilesByFolderNative(folder, start, limit)
             .pipe(map((native) => {
                 return this.convertFromNative(native);
             }))
     }
 
-    public getFilesByTag(tag: TagID, a: number, b: number): Observable<FileDetails[]> {
-        return this.getFilesByTagNative(tag, a, b)
+    public getFilesByTag(tag: TagID, start: FileID, limit: number): Observable<FileDetails[]> {
+        return this.getFilesByTagNative(tag, start, limit)
             .pipe(map((native) => {
                 return this.convertFromNative(native);
             }))

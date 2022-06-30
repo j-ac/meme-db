@@ -38,14 +38,18 @@ async fn get_folders() -> Vec<mdbapi::FolderDetails> {
 #[tauri::command]
 async fn get_files_by_folder(
     folder: mdbapi::FileID,
-    a: usize,
-    b: usize,
+    start: mdbapi::FileID,
+    limit: usize,
 ) -> Vec<mdbapi::FileDetails> {
     mdbapi::get_files_by_folder(0, folder, 0, 0)
 }
 
 #[tauri::command]
-async fn get_files_by_tag(tag: mdbapi::TagID, a: usize, b: usize) -> Vec<mdbapi::FileDetails> {
+async fn get_files_by_tag(
+    tag: mdbapi::TagID,
+    start: mdbapi::FileID,
+    limit: usize,
+) -> Vec<mdbapi::FileDetails> {
     mdbapi::get_files_by_tag(0, tag, 0, 0)
 }
 

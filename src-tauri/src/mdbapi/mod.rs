@@ -4,7 +4,7 @@ use std::vec::Vec;
 use serde::Serialize;
 //Stubs go here
 
-pub fn get_files_by_folder(database: DatabaseID, folder: FileID, a: usize, b: usize) -> Vec<FileDetails> {
+pub fn get_files_by_folder(database: DatabaseID, folder: FileID, start: FileID, limit: usize) -> Vec<FileDetails> {
     vec![
         FileDetails {
             id: 0,
@@ -33,7 +33,7 @@ pub fn get_files_by_folder(database: DatabaseID, folder: FileID, a: usize, b: us
     ]
 }
 
-pub fn get_files_by_tag(database: DatabaseID, tag: TagID, a: usize, b: usize) -> Vec<FileDetails> {
+pub fn get_files_by_tag(database: DatabaseID, tag: TagID, start: FileID, limit: usize) -> Vec<FileDetails> {
     vec![
         FileDetails {
             id: 0,
