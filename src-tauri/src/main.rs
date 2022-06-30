@@ -1,3 +1,23 @@
+#![warn(
+    absolute_paths_not_starting_with_crate,
+    //explicit_outlives_requirements,
+    keyword_idents,
+    macro_use_extern_crate,
+    missing_debug_implementations,
+    //missing_docs,
+    non_ascii_idents,
+    noop_method_call,
+    single_use_lifetimes,
+    trivial_casts,
+    trivial_numeric_casts,
+    //unreachable_pub,
+    unused_extern_crates,
+    unused_import_braces,
+    unused_lifetimes,
+    //unused_qualifications,
+    //unused_results,
+  )]
+
 #![cfg_attr(
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
