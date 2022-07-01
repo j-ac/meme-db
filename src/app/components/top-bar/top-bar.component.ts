@@ -5,6 +5,7 @@ import { DatabaseID, DatabaseService } from 'src/service/database/database.servi
 import { PolymorpheusComponent } from '@tinkoff/ng-polymorpheus';
 import { NewDatabaseDialogComponent } from '../dialog/new-database-dialog/new-database-dialog.component';
 import { from, switchMap } from 'rxjs';
+import { EditFoldersDialogComponent } from '../dialog/edit-folders-dialog/edit-folders-dialog.component';
 
 
 @Component({
@@ -42,7 +43,6 @@ export class TopBarComponent implements OnInit {
                     this.alert.open(`"${newDB.name}" added`).subscribe();
                 },
                 error: (gui_msg) => {
-                    console.log(gui_msg);
                     this.alert
                         .open(gui_msg,
                             { label: "Failed to add new database!", status: TuiNotification.Error, autoClose: false, })
@@ -51,4 +51,10 @@ export class TopBarComponent implements OnInit {
             });
     }
 
+    onEditFolders() {
+        this.dialogService
+            .open<void>(
+                new PolymorpheusComponent(EditFoldersDialogComponent, this.injector),
+                { data: this.dbService.getUsedDatabase() }).subscribe();
+    }
 }

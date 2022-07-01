@@ -1,8 +1,10 @@
 import { NgIfContext } from '@angular/common';
 import { Injectable } from '@angular/core';
 import { invoke } from '@tauri-apps/api';
-import { from, Observable, Observer } from 'rxjs';
+import { from, map, Observable, Observer } from 'rxjs';
+import { DatabaseService } from '../database/database.service';
 import { FileID } from '../files/file-fetch.service';
+import { GUIResult } from '../util/util';
 
 @Injectable({
     providedIn: 'root'
@@ -14,7 +16,7 @@ export class FolderFetchService {
     folder_map = new Map<FileID, FolderDetails>()
     name_map = new Map<string, FolderDetails>()
 
-    constructor() {
+    constructor(private databaseService: DatabaseService) {
         this.sample()
     }
 
@@ -28,14 +30,18 @@ export class FolderFetchService {
                     this.folder_map.set(f.id, f);
                     this.name_map.set(f.path, f);
                 }
-                for (let obs of this.observers) {
-                    obs.next(fd);
-                }
-                for (let obs of this.obs_map) {
-                    obs.next(this.folder_map);
-                }
+                this.sendFolders();
             }
         })
+    }
+
+    private sendFolders() {
+        for (let obs of this.observers) {
+            obs.next(this.folders);
+        }
+        for (let obs of this.obs_map) {
+            obs.next(this.folder_map);
+        }
     }
 
     public getFolders(): Observable<FolderDetails[]> {
@@ -49,6 +55,21 @@ export class FolderFetchService {
                 }
             };
         })
+    }
+
+    public addFolder(path: string): Observable<FolderDetails> {
+        let args = {
+            database: this.databaseService.getUsedDatabase().id,
+            path: path,
+        };
+        return from(invoke<GUIResult<FolderDetails>>('add_folder', args)).pipe(map((res) => {
+            if (res.Err !== undefined || res.Ok === undefined) {
+                throw res.Err?.gui_msg || "Critical backend error!";
+            }
+            this.folders.push(res.Ok);
+            this.sendFolders();
+            return res.Ok;
+        }))
     }
 
     public getFolderMap(): Observable<Map<FileID, FolderDetails>> {

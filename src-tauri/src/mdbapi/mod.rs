@@ -75,8 +75,8 @@ pub fn get_folders(database: DatabaseID) -> Vec<FolderDetails> {
     ]
 }
 
-pub fn add_folder<P: AsRef<Path>>(database: DatabaseID, location: P) -> Result<FileID> {
-    todo!("add_folder not implemented!")
+pub fn add_folder<P: AsRef<Path>>(database: DatabaseID, location: P) -> Result<FolderDetails> {
+    return Error::basic_str("Not implemented!");
 }
 
 pub fn del_folder(database: DatabaseID, folder: FileID) -> Result<()> {

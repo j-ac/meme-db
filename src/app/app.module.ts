@@ -16,6 +16,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { TopBarComponent } from './components/top-bar/top-bar.component';
 import { NewDatabaseDialogComponent } from './components/dialog/new-database-dialog/new-database-dialog.component';
+import { EditFoldersDialogComponent } from './components/dialog/edit-folders-dialog/edit-folders-dialog.component';
 
 
 
@@ -30,6 +31,7 @@ import { NewDatabaseDialogComponent } from './components/dialog/new-database-dia
         FoldersViewComponent,
         TopBarComponent,
         NewDatabaseDialogComponent,
+        EditFoldersDialogComponent,
     ],
     imports: [
         //Angular built-ins

@@ -3,7 +3,7 @@
     windows_subsystem = "windows"
 )]
 
-use mdbapi::{DatabaseDetails, DatabaseID, GUIResult};
+use mdbapi::{DatabaseDetails, DatabaseID, GUIResult, FolderDetails};
 use std::{fs::File, io::Read, path::PathBuf, vec::Vec};
 use sysinfo::{ProcessExt, System, SystemExt};
 use tauri::generate_handler;
@@ -32,7 +32,12 @@ async fn add_file_tag(file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::Resul
 
 #[tauri::command]
 async fn get_folders() -> Vec<mdbapi::FolderDetails> {
-    mdbapi::get_folders(0)
+    return mdbapi::get_folders(0);
+}
+
+#[tauri::command]
+async fn add_folder(database: DatabaseID, path: String) -> mdbapi::Result<FolderDetails> {
+    return  mdbapi::add_folder(database, path)
 }
 
 #[tauri::command]
@@ -137,6 +142,7 @@ fn main() {
             get_tags,
             //FILE API
             get_folders,
+            add_folder,
             get_files_by_folder,
             get_files_by_tag,
             add_file_tag,

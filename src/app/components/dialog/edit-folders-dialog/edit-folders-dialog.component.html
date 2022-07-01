@@ -1,0 +1,8 @@
+<h2 style="margin-top: 0px;">Folders for "{{this.db_name}}"</h2>
+<button tuiButton type="button" size="m" (click)="addFolder()">Add Folder</button>
+<ul class="tui-list tui-list_large">
+    <li class="tui-list__item" *ngFor="let f of this.folders">{{f.path}}</li>
+</ul>
+<button tuiButton type="button" size="m" (click)="submit()">
+    Done
+</button>
