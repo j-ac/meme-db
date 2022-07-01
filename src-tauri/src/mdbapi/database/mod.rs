@@ -31,9 +31,8 @@ impl Database {
         connection
             .execute(
                 "CREATE TABLE IF NOT EXISTS tag_records (
-                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
                 image_id REFERENCES image (id),
-                tag_id REFERENCES tag (id))",
+                tag_id REFERENCES tag (id), UNIQUE (tag_id, image_id) ON CONFLICT IGNORE)",
                 [],
             )
             .unwrap();
