@@ -2,8 +2,8 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { TuiAlertModule, TuiButtonModule, TuiDataListModule, TuiDialogModule, TuiErrorModule, TuiGroupModule, TuiHintModule, TuiPrimitiveTextfieldModule, TuiRootModule, TuiScrollbarModule, TuiTextfieldControllerModule, TuiTooltipModule } from '@taiga-ui/core';
-import { TuiDataListWrapperModule, TuiInputModule, TuiIslandModule, TuiSelectModule, TuiTextAreaModule, TuiTreeModule } from '@taiga-ui/kit';
+import { TuiAlertModule, TuiButtonModule, TuiDataListModule, TuiDialogModule, TuiErrorModule, TuiGroupModule, TuiHintModule, TuiPrimitiveTextfieldModule, TuiRootModule, TuiScrollbarModule, TuiSvgModule, TuiTextfieldControllerModule, TuiTooltipModule } from '@taiga-ui/core';
+import { TuiDataListWrapperModule, TuiInputModule, TuiIslandModule, TuiMarkerIconModule, TuiSelectModule, TuiTextAreaModule, TuiTreeModule } from '@taiga-ui/kit';
 import { TuiThemeNightModule, TuiModeModule } from '@taiga-ui/core';
 import { TagsViewComponent } from './components/tags-view/tags-view.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -65,6 +65,8 @@ import { EditFoldersDialogComponent } from './components/dialog/edit-folders-dia
         TuiHintModule,
         TuiErrorModule,
         TuiScrollbarModule,
+        TuiMarkerIconModule,
+        TuiSvgModule,
     ],
     providers: [],
     bootstrap: [AppComponent]

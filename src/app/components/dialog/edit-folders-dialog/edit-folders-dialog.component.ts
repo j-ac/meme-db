@@ -53,17 +53,34 @@ export class EditFoldersDialogComponent implements OnInit {
             return this.folderFetchService.addFolder(folder);
         })).subscribe({
             next: (fd) => {
-                this.alert.open(`${fd.path} added!`, { status: TuiNotification.Success }).subscribe();
+                this.alert.open(`${fd.path} added.`, { status: TuiNotification.Success }).subscribe();
             },
             error: (gui_msg: string) => {
                 this.alert.open(gui_msg,
                     {
-                        label: "Failed to add folder.",
+                        label: "Failed to add folder!",
                         status: TuiNotification.Error,
                         autoClose: false,
                     }).subscribe();
             }
         })
+    }
+
+    delFolder(fd: FolderDetails) {
+        this.folderFetchService.delFolder(fd).subscribe({
+            next: () => {
+                console.log(fd);
+                this.alert.open(`${fd.path} deleted.`, { status: TuiNotification.Success }).subscribe();
+            },
+            error: (gui_msg: string) => {
+                this.alert.open(gui_msg,
+                    {
+                        label: "Failed to delete folder!",
+                        status: TuiNotification.Error,
+                        autoClose: false,
+                    }).subscribe();
+            }
+        });
     }
 
     submit() {

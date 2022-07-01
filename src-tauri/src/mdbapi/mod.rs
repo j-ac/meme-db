@@ -80,7 +80,7 @@ pub fn add_folder<P: AsRef<Path>>(database: DatabaseID, location: P) -> Result<F
 }
 
 pub fn del_folder(database: DatabaseID, folder: FileID) -> Result<()> {
-    todo!("del_folder not implemented!")
+    return Error::basic_str("Not implemented!")
 }
 
 pub fn get_tags(database: DatabaseID) -> Vec<TagDetails> {

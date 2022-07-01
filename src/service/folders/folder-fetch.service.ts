@@ -72,6 +72,21 @@ export class FolderFetchService {
         }))
     }
 
+    public delFolder(f: FolderDetails): Observable<void> {
+        let args = {
+            database: this.databaseService.getUsedDatabase().id,
+            folder: f.id,
+        };
+        return from(invoke<GUIResult<void>>('del_folder', args)).pipe(map((res) => {
+            if (res.Err !== undefined || res.Ok === undefined) {
+                throw res.Err?.gui_msg || "Critical backend error!";
+            }
+            this.folders.splice(this.folders.find((v) => {v.id == f.id})!.id, 1);
+            this.sendFolders();
+            return;
+        }))
+    }
+
     public getFolderMap(): Observable<Map<FileID, FolderDetails>> {
         return new Observable((obs) => {
             this.obs_map.push(obs);
