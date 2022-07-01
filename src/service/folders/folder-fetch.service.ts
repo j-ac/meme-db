@@ -1,9 +1,9 @@
 import { NgIfContext } from '@angular/common';
 import { Injectable } from '@angular/core';
-import { invoke } from '@tauri-apps/api';
 import { from, map, Observable, Observer } from 'rxjs';
 import { DatabaseService } from '../database/database.service';
 import { FileID } from '../files/file-fetch.service';
+import { API, InvokeService } from '../util/invoke.service';
 import { GUIResult } from '../util/util';
 
 @Injectable({
@@ -16,12 +16,12 @@ export class FolderFetchService {
     folder_map = new Map<FileID, FolderDetails>()
     name_map = new Map<string, FolderDetails>()
 
-    constructor(private databaseService: DatabaseService) {
+    constructor(private mdbapi: InvokeService) {
         this.sample()
     }
 
     public sample() {
-        from(invoke<FolderDetails[]>('get_folders')).subscribe({
+        this.mdbapi.invoke_nores<FolderDetails[]>(API.get_folders).subscribe({
             next: (fd) => {
                 this.folders = fd;
                 this.folder_map.clear();
@@ -59,29 +59,21 @@ export class FolderFetchService {
 
     public addFolder(path: string): Observable<FolderDetails> {
         let args = {
-            database: this.databaseService.getUsedDatabase().id,
             path: path,
         };
-        return from(invoke<GUIResult<FolderDetails>>('add_folder', args)).pipe(map((res) => {
-            if (res.Err !== undefined || res.Ok === undefined) {
-                throw res.Err?.gui_msg || "Critical backend error!";
-            }
-            this.folders.push(res.Ok);
+        return this.mdbapi.invoke<FolderDetails>(API.add_folder, args).pipe(map((fd) => {
+            this.folders.push(fd);
             this.sendFolders();
-            return res.Ok;
+            return fd;
         }))
     }
 
     public delFolder(f: FolderDetails): Observable<void> {
         let args = {
-            database: this.databaseService.getUsedDatabase().id,
             folder: f.id,
         };
-        return from(invoke<GUIResult<void>>('del_folder', args)).pipe(map((res) => {
-            if (res.Err !== undefined || res.Ok === undefined) {
-                throw res.Err?.gui_msg || "Critical backend error!";
-            }
-            this.folders.splice(this.folders.find((v) => {v.id == f.id})!.id, 1);
+        return this.mdbapi.invoke<null>(API.del_folder, args).pipe(map(() => {
+            this.folders.splice(this.folders.find((v) => { v.id == f.id })!.id, 1);
             this.sendFolders();
             return;
         }))

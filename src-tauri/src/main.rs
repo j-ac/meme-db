@@ -3,7 +3,7 @@
     windows_subsystem = "windows"
 )]
 
-use mdbapi::{DatabaseDetails, DatabaseID, GUIResult, FolderDetails, FileID};
+use mdbapi::{DatabaseDetails, DatabaseID, GUIResult, FolderDetails};
 use std::{fs::File, io::Read, path::PathBuf, vec::Vec};
 use sysinfo::{ProcessExt, System, SystemExt};
 use tauri::generate_handler;
@@ -14,15 +14,15 @@ mod mdbapi;
 /* FRONT END TAG API */
 
 #[tauri::command]
-async fn get_tags() -> Vec<mdbapi::TagDetails> {
-    mdbapi::get_tags(0)
+async fn get_tags(database: DatabaseID) -> Vec<mdbapi::TagDetails> {
+    mdbapi::get_tags(database)
 }
 
 /* FRONT END TAG API END*/
 /* FRONT END FILE API */
 
 #[tauri::command]
-async fn add_file_tag(file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::Result<()> {
+async fn add_file_tag(database: DatabaseID, file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::Result<()> {
     if file == 0 && tag == 0 {
         mdbapi::Error::basic_str("FUCK!")
     } else {
@@ -31,8 +31,8 @@ async fn add_file_tag(file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::Resul
 }
 
 #[tauri::command]
-async fn get_folders() -> Vec<mdbapi::FolderDetails> {
-    return mdbapi::get_folders(0);
+async fn get_folders(database: DatabaseID) -> Vec<mdbapi::FolderDetails> {
+    return mdbapi::get_folders(database);
 }
 
 #[tauri::command]
@@ -47,20 +47,22 @@ async fn del_folder(database: DatabaseID, folder: mdbapi::FileID) -> mdbapi::Res
 
 #[tauri::command]
 async fn get_files_by_folder(
+    database: DatabaseID,
     folder: mdbapi::FileID,
     start: mdbapi::FileID,
     limit: usize,
 ) -> Vec<mdbapi::FileDetails> {
-    mdbapi::get_files_by_folder(0, folder, 0, 0)
+    mdbapi::get_files_by_folder(database, folder, 0, 0)
 }
 
 #[tauri::command]
 async fn get_files_by_tag(
+    database: DatabaseID,
     tag: mdbapi::TagID,
     start: mdbapi::FileID,
     limit: usize,
 ) -> Vec<mdbapi::FileDetails> {
-    mdbapi::get_files_by_tag(0, tag, 0, 0)
+    mdbapi::get_files_by_tag(database, tag, 0, 0)
 }
 
 /* FRONT END FILE API END */
@@ -92,7 +94,7 @@ async fn rename_database(id: DatabaseID, new_name: String) -> mdbapi::Result<()>
 /* FRONT END MISC API */
 
 #[tauri::command]
-async fn load_image(file: mdbapi::FileID) -> mdbapi::Result<mdbapi::LoadedImage> {
+async fn load_image(database: DatabaseID, file: mdbapi::FileID) -> mdbapi::Result<mdbapi::LoadedImage> {
     let mut retval = Vec::new();
     let f = match file {
         0 => "C:/Users/Ben/Pictures/meme1.jpg",

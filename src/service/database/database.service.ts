@@ -23,6 +23,10 @@ export class DatabaseService implements OnInit {
     }
 
     ngOnInit(): void {
+        this.getDatabases();
+    }
+
+    getDatabases() {
         invoke<DatabaseDetails[]>('get_databases').then((dds) => {
             this.by_id.clear();
             this.by_name.clear();

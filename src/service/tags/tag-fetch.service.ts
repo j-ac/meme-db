@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { invoke } from '@tauri-apps/api';
-import { from, Observable, Observer } from 'rxjs';
+import { Observable, Observer } from 'rxjs';
+import { API, InvokeService } from '../util/invoke.service';
 
 @Injectable({
     providedIn: 'root'
@@ -12,12 +12,12 @@ export class TagFetchService {
     name_map = new Map<string, TagDetails>()
     tag_map = new Map<TagID, TagDetails>()
 
-    constructor() {
+    constructor(private mdbapi: InvokeService) {
         this.sample()
     }
 
     public sample() {
-        from(invoke<TagDetailsNative[]>('get_tags')).subscribe({
+        this.mdbapi.invoke_nores<TagDetailsNative[]>(API.get_tags).subscribe({
             next: (tags) => {
                 this.tagsNative = tags;
                 this.tags = [];
@@ -45,7 +45,7 @@ export class TagFetchService {
                     obs.next(this.tags);
                 }
             }
-        })
+        });
     }
 
     public getTags(): Observable<TagDetails[]> {

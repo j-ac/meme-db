@@ -56,17 +56,17 @@ export class ImageViewComponent implements OnInit {
         if (event.container == event.previousContainer) {
             return;
         }
-        this.fileFetch.addTag(this.image.id, event.item.data.id).pipe(switchMap(
-            (res) => {
-                if (res.Err !== undefined) {
-                    return this.alert.open(res.Err.gui_msg,
-                        { label: "Failed to add tag!", status: TuiNotification.Error, autoClose: false, });
-                }
+        this.fileFetch.addTag(this.image.id, event.item.data.id).subscribe({
+            next: () => {
                 this.image?.tags.push(event.item.data);
                 return this.alert.open("Tag added to",
                     { label: "Success!", status: TuiNotification.Success });
+            },
+            error: (gui_msg) => {
+                this.alert.open(gui_msg,
+                    { label: "Failed to add tag!", status: TuiNotification.Error, autoClose: false, }).subscribe();
             }
-        )).subscribe();
+        });
     }
 
     public imagePresent() {

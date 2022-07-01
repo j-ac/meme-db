@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
 import { TuiAlertService, TuiNotification } from '@taiga-ui/core';
 import { invoke } from '@tauri-apps/api';
-import { from, map, Observable, Observer, of, tap } from 'rxjs';
+import { from, map, Observable, Observer, of, switchMap, tap } from 'rxjs';
 import { TagDetails, TagFetchService, TagID } from '../tags/tag-fetch.service';
+import { API, InvokeService } from '../util/invoke.service';
 import { GUIResult } from '../util/util';
 
 @Injectable({
@@ -12,7 +13,10 @@ export class FileFetchService {
     files: FileDetailsNative[] = [];
     image_cache = new Map<FileID, CacheEntry>();
 
-    constructor(private tagFetch: TagFetchService) {
+    constructor(
+        private tagFetch: TagFetchService,
+        private mdbapi: InvokeService,
+        ) {
         setInterval(() => {
             const now = Date.now()
             for (let [k, v] of this.image_cache) {
@@ -24,11 +28,13 @@ export class FileFetchService {
     }
 
     public getFilesByFolderNative(folder: FileID, start: FileID, limit: number): Observable<FileDetailsNative[]> {
-        return from(invoke<FileDetailsNative[]>('get_files_by_folder', { folder: folder, start: start, limit: limit }));
+        const args = { folder: folder, start: start, limit: limit };
+        return this.mdbapi.invoke_nores<FileDetailsNative[]>(API.get_files_by_folder, args);
     }
 
     public getFilesByTagNative(tag: TagID, start: FileID, limit: number): Observable<FileDetailsNative[]> {
-        return from(invoke<FileDetailsNative[]>('get_files_by_tag', { tag: tag, start: start, limit: limit }));
+        let args = { tag: tag, start: start, limit: limit };
+        return this.mdbapi.invoke_nores<FileDetailsNative[]>(API.get_files_by_tag, args);
     }
 
     private convertFromNative(native: FileDetailsNative[]): FileDetails[] {
@@ -79,22 +85,19 @@ export class FileFetchService {
             })
         }
 
-        invoke<GUIResult<LoadedImage>>('load_image', { file: file }).then((image_data) => {
-            if (image_data.Err !== undefined) {
-                throw image_data.Err.gui_msg;
-            }
+        return this.mdbapi.invoke<LoadedImage>(API.load_image, {file: file}).pipe(switchMap((image_data) => {
             let image = new Image();
             image.onload = () => {
                 this.image_cache.set(file, new CacheEntry(image));
                 fulfill(image)
             }
-            image.src = `data:image/${image_data.Ok!.format};base64,${image_data.Ok!.b64_data}`;
-        }).catch((reason) => reject(reason))
-        return from(retval)
+            image.src = `data:image/${image_data.format};base64,${image_data.b64_data}`;
+            return from(retval);
+        }))
     }
 
-    public addTag(file: FileID, tag: TagID): Observable<GUIResult<any>> {
-        return from(invoke<GUIResult<any>>('add_file_tag', { file: file, tag: tag }))
+    public addTag(file: FileID, tag: TagID): Observable<null> {
+        return this.mdbapi.invoke<null>(API.add_file_tag, { file: file, tag: tag });
     }
 }
 
