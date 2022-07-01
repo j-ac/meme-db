@@ -31,6 +31,12 @@ async fn add_file_tag(database: DatabaseID, file: mdbapi::FileID, tag: mdbapi::T
 }
 
 #[tauri::command]
+async fn del_file_tag(database: DatabaseID, file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::Result<()> {
+    return mdbapi::Error::basic_str("Not implemented!");
+}
+
+
+#[tauri::command]
 async fn get_folders(database: DatabaseID) -> Vec<mdbapi::FolderDetails> {
     return mdbapi::get_folders(database);
 }
@@ -154,6 +160,7 @@ fn main() {
             get_files_by_folder,
             get_files_by_tag,
             add_file_tag,
+            del_file_tag,
             //DATABASE API
             get_databases,
             add_database,

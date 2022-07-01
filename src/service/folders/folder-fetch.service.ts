@@ -73,7 +73,7 @@ export class FolderFetchService {
             folder: f.id,
         };
         return this.mdbapi.invoke<null>(API.del_folder, args).pipe(map(() => {
-            this.folders.splice(this.folders.find((v) => { v.id == f.id })!.id, 1);
+            this.folders.splice(this.folders.findIndex((v) => { v.id === f.id }), 1);
             this.sendFolders();
             return;
         }))

@@ -99,6 +99,11 @@ export class FileFetchService {
     public addTag(file: FileID, tag: TagID): Observable<null> {
         return this.mdbapi.invoke<null>(API.add_file_tag, { file: file, tag: tag });
     }
+
+    public delTag(file: FileID, tag: TagID): Observable<null> {
+        let args = {file: file, tag: tag};
+        return this.mdbapi.invoke<null>(API.del_file_tag, args);
+    }
 }
 
 export type FileID = number;

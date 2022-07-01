@@ -69,6 +69,21 @@ export class ImageViewComponent implements OnInit {
         });
     }
 
+    deleted(tag: TagDetails) {
+        if (this.image === undefined)
+            return;
+        let tags = this.image.tags;
+        this.fileFetch.delTag(this.image.id, tag.id).subscribe({
+            next: () => {
+                tags.splice(tags.findIndex((t) => { t.id === tag.id }), 1);
+            }, error: (gui_msg) => {
+                this.alert.open(gui_msg,
+                    { label: "Failed to delete tag!", status: TuiNotification.Error, autoClose: false, }).subscribe();
+            }
+        });
+
+    }
+
     public imagePresent() {
         return this.image !== undefined;
     }
