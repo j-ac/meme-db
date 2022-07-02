@@ -3,10 +3,10 @@
     windows_subsystem = "windows"
 )]
 
-use mdbapi::{DatabaseDetails, DatabaseID, GUIResult, FolderDetails};
+use mdbapi::{DatabaseDetails, DatabaseID, GUIResult, FolderDetails, FileDetails};
 use std::{fs::File, io::Read, path::PathBuf, vec::Vec};
 use sysinfo::{ProcessExt, System, SystemExt};
-use tauri::generate_handler;
+use tauri::{generate_handler, Manager};
 
 mod mdbapi;
 
@@ -22,19 +22,14 @@ async fn get_tags(database: DatabaseID) -> Vec<mdbapi::TagDetails> {
 /* FRONT END FILE API */
 
 #[tauri::command]
-async fn add_file_tag(database: DatabaseID, file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::Result<()> {
-    if file == 0 && tag == 0 {
-        mdbapi::Error::basic_str("FUCK!")
-    } else {
-        GUIResult::Ok(())
-    }
+async fn add_file_tag(database: DatabaseID, file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::Result<FileDetails> {
+    return mdbapi::add_file_tag(database, file, tag);
 }
 
 #[tauri::command]
-async fn del_file_tag(database: DatabaseID, file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::Result<()> {
-    return mdbapi::Error::basic_str("Not implemented!");
+async fn del_file_tag(database: DatabaseID, file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::Result<FileDetails> {
+    return mdbapi::del_file_tag(database, file, tag);
 }
-
 
 #[tauri::command]
 async fn get_folders(database: DatabaseID) -> Vec<mdbapi::FolderDetails> {
@@ -58,7 +53,7 @@ async fn get_files_by_folder(
     start: mdbapi::FileID,
     limit: usize,
 ) -> Vec<mdbapi::FileDetails> {
-    mdbapi::get_files_by_folder(database, folder, 0, 0)
+    mdbapi::get_files_by_folder(database, folder, start, limit)
 }
 
 #[tauri::command]
@@ -68,7 +63,7 @@ async fn get_files_by_tag(
     start: mdbapi::FileID,
     limit: usize,
 ) -> Vec<mdbapi::FileDetails> {
-    mdbapi::get_files_by_tag(database, tag, 0, 0)
+    mdbapi::get_files_by_tag(database, tag, start, limit)
 }
 
 /* FRONT END FILE API END */

@@ -123,6 +123,14 @@ pub fn get_tags(database: DatabaseID) -> Vec<TagDetails> {
     ]
 }
 
+pub fn add_file_tag(database: DatabaseID, file: FileID, tag: TagID) -> Result<FileDetails> {
+    return Error::basic_str("Not implemented!");
+}
+
+pub fn del_file_tag(database: DatabaseID, file: FileID, tag: TagID) -> Result<FileDetails> {
+    return Error::basic_str("Not implemented!");
+}
+
 pub type DatabaseID = usize;
 pub type FileID = usize;
 pub type TagID = usize;

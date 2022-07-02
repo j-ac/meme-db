@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { TuiAlertService, TuiNotification } from '@taiga-ui/core';
 import { invoke } from '@tauri-apps/api';
 import { from, map, Observable, Observer, of, switchMap, tap } from 'rxjs';
-import { TagDetails, TagFetchService, TagID } from '../tags/tag-fetch.service';
+import { TagDetails, TagDetailsNative, TagFetchService, TagID } from '../tags/tag-fetch.service';
 import { API, InvokeService } from '../util/invoke.service';
 import { GUIResult } from '../util/util';
 
@@ -16,7 +16,7 @@ export class FileFetchService {
     constructor(
         private tagFetch: TagFetchService,
         private mdbapi: InvokeService,
-        ) {
+    ) {
         setInterval(() => {
             const now = Date.now()
             for (let [k, v] of this.image_cache) {
@@ -85,7 +85,7 @@ export class FileFetchService {
             })
         }
 
-        return this.mdbapi.invoke<LoadedImage>(API.load_image, {file: file}).pipe(switchMap((image_data) => {
+        return this.mdbapi.invoke<LoadedImage>(API.load_image, { file: file }).pipe(switchMap((image_data) => {
             let image = new Image();
             image.onload = () => {
                 this.image_cache.set(file, new CacheEntry(image));
@@ -96,13 +96,19 @@ export class FileFetchService {
         }))
     }
 
-    public addTag(file: FileID, tag: TagID): Observable<null> {
-        return this.mdbapi.invoke<null>(API.add_file_tag, { file: file, tag: tag });
+    public addTag(file: FileID, tag: TagID): Observable<FileDetails> {
+        return this.mdbapi.invoke<FileDetailsNative>(API.add_file_tag, { file: file, tag: tag })
+            .pipe(switchMap((native) => {
+                return this.convertFromNative([native]);
+            }));
     }
 
-    public delTag(file: FileID, tag: TagID): Observable<null> {
-        let args = {file: file, tag: tag};
-        return this.mdbapi.invoke<null>(API.del_file_tag, args);
+    public delTag(file: FileID, tag: TagID): Observable<FileDetails> {
+        let args = { file: file, tag: tag };
+        return this.mdbapi.invoke<FileDetailsNative>(API.del_file_tag, args)
+            .pipe(switchMap((native) => {
+                return this.convertFromNative([native]);
+            }));
     }
 }
 
