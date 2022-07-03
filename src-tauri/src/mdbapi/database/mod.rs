@@ -1,20 +1,41 @@
-use std::path::Path;
+use rusqlite::{Connection, MappedRows};
+use std::{collections::HashMap, path::Path};
 
-use rusqlite::Connection;
+use super::{TagDetails, TagID};
 
 pub mod prelude {}
-struct Database {
+struct Database<'a> {
     conn: Connection,
+    taggraph: TagGraph<'a>,
 }
 
-impl Database {
+/// Stores parent-child relationships between all tags
+struct TagGraph<'a> {
+    graph: HashMap<TagID, TagNode<'a>>,
+}
+/// Nodes in a [TagGraph]
+struct TagNode<'a> {
+    parents: Vec<&'a TagNode<'a>>,
+    tag: Tag,
+}
+
+struct Image {
+    id: i32,
+}
+
+struct Tag {
+    id: i32,
+    name: String,
+}
+
+impl Database<'_> {
     fn open<P: AsRef<Path>>(path: P) -> Self {
         let connection = Connection::open(path).unwrap();
 
         connection
             .execute(
                 "CREATE TABLE IF NOT EXISTS image (
-                id INTEGER PRIMARY KEY UNIQUE AUTOINCREMENT)",
+                id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE)",
                 [],
             )
             .unwrap();
@@ -46,27 +67,56 @@ impl Database {
             )
             .unwrap();
 
-        Self { conn: connection }
+        Self {
+            conn: connection,
+            taggraph: TagGraph {
+                graph: HashMap::new(),
+            },
+        }
     }
 
-    fn new_tag<S: AsRef<str>>(&self, name: S) -> Option<i64>{
-        let mut stmt = self.conn.prepare(
-        "INSERT OR IGNORE INTO tags (id, name) 
+    ///Retrieve rows from child_to_parent table, construct a [TagGraph]
+    fn create_tag_tree() {
+        //make tag graph
+        //SELECT * FROM child_to_parent
+        //For each row in child to parent
+        //if there is no TagNode.tag matching in the graph already, then create it, and add the parent
+        //else add the parent
+    }
+
+    fn new_tag<S: AsRef<str>>(&self, name: S) -> Option<i64> {
+        let mut stmt = self
+            .conn
+            .prepare(
+                "INSERT OR IGNORE INTO tags (id, name) 
         VALUES (NULL, ?)
-        "
-        ).unwrap();
+        ",
+            )
+            .unwrap();
 
         stmt.execute(&[name.as_ref()]).unwrap();
 
         Some(self.conn.last_insert_rowid()) //UI needs this
+    }
 
+    fn get_tags(&self) -> Vec<TagDetails> {
+        let mut query = self.conn.prepare("SELECT * from tag").unwrap();
+        let tag_iter = query
+            .query_map([], |row| {
+                Ok(TagDetails {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    parents: vec![],
+                })
+            })
+            .unwrap();
+
+        Vec::from_iter(tag_iter.map(|tag| tag.unwrap()))
     }
 }
 
 #[cfg(test)]
-mod tests{
+mod tests {
     #[test]
-    fn test_one(){}
-
-
+    fn test_one() {}
 }
