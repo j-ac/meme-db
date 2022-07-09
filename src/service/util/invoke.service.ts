@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
+import { TuiAlertService, TuiNotification } from '@taiga-ui/core';
 import { invoke } from '@tauri-apps/api';
-import { from, map, Observable } from 'rxjs';
+import { catchError, from, map, Observable } from 'rxjs';
 import { DatabaseService } from '../database/database.service';
 import { GUIResult } from './util';
 
@@ -9,9 +10,9 @@ import { GUIResult } from './util';
 })
 export class InvokeService {
 
-    constructor(private databaseService: DatabaseService) { }
+    constructor(private databaseService: DatabaseService, private alertService: TuiAlertService) { }
 
-    public invoke<R>(func: API, args: any = {}): Observable<R> {
+    public invoke<R>(func: API, args: any = {}, message: string|undefined = undefined): Observable<R> {
         args.database = this.databaseService.getUsedDatabase().id;
         return from(invoke<GUIResult<R>>(API[func], args)).pipe(map(
             (res) => {
@@ -20,7 +21,17 @@ export class InvokeService {
                 }
                 return res.Ok;
             }
-        ));
+        // Conceptually this error handling should be one layer up
+        )).pipe(catchError((gui_msg) => {
+            if (message === undefined) {
+                message = API[func]
+            }
+            console.log(args)
+            this.alertService.open(gui_msg,
+                {autoClose: false, label: message, status: TuiNotification.Error,})
+                .subscribe();
+            return [];
+        }));
     }
 
     public invoke_nores<R>(func: API, args: any = {}): Observable<R> {
@@ -38,6 +49,7 @@ export enum API {
     del_folder,
     get_files_by_folder,
     get_files_by_tag,
+    get_files_by_query,
     add_file_tag,
     del_file_tag,
     //DATABASE API

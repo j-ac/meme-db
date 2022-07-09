@@ -1,7 +1,7 @@
-
 use std::path::{PathBuf, Path};
+use std::option::Option;
 use std::vec::Vec;
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 //Stubs go here
 
 pub fn get_files_by_folder(database: DatabaseID, folder: FileID, start: FileID, limit: usize) -> Vec<FileDetails> {
@@ -60,6 +60,21 @@ pub fn get_files_by_tag(database: DatabaseID, tag: TagID, start: FileID, limit: 
             tags: vec![2],
         },
     ]
+}
+
+pub fn get_files_by_query(database: DatabaseID, query: FileQuery) -> Result<Vec<FileDetails>> {
+    Error::basic_str("Not implemented!")
+}
+
+pub fn get_file_by_id(database: DatabaseID, file: FileID) -> Result<&'static Path> {
+    let f = match file {
+        0 => "C:/Users/Ben/Pictures/meme1.jpg",
+        1 => "C:/Users/Ben/Pictures/meme2.jpg",
+        2 => "C:/Users/Ben/Pictures/meme3.jpg",
+        3 => "C:/Users/Ben/Pictures/meme4.jpg",
+        _ => return Error::basic_str("Bad ID!"),
+    };
+    return Result::Ok(Path::new(f));
 }
 
 pub fn get_folders(database: DatabaseID) -> Vec<FolderDetails> {
@@ -174,10 +189,18 @@ impl LoadedImage {
     }
 }
 
+#[derive(Debug, Deserialize)]
+pub struct FileQuery {
+    tags_include: Option<Vec<TagID>>,
+    tags_exclude: Option<Vec<TagID>>,
+    folders_include: Option<Vec<FileID>>,
+    names: Option<Vec<String>>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct Error {
-    gui_msg: String,
-    err_type: ErrorType,
+    pub gui_msg: String,
+    pub err_type: ErrorType,
 }
 
 #[derive(Debug, Serialize)]

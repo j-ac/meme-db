@@ -8,23 +8,17 @@
                 </tui-input>
             </div>
             <div>
-                <tui-input formControlName="folder" class="tui-group__inherit-item" tuiTextfieldSize="s">
-                    Folder
-                </tui-input>
+                <tui-multi-select tuiTextfieldExampleText="Ignored text" formControlName="folder" tuiTextfieldSize="s"
+                    class="tui-group__inherit-item" [tuiTextfieldLabelOutside]="true" [editable]="false"
+                    [tuiDropdownLimitWidth]="'min'" [tuiDropdownAlign]="'left'"
+                    [expandable]="false">
+                    Folders
+                    <tui-data-list-wrapper *tuiDataList tuiMultiSelectGroup [items]="folders"></tui-data-list-wrapper>
+                </tui-multi-select>
             </div>
             <div>
                 <tui-input formControlName="tag" class="tui-group__inherit-item" tuiTextfieldSize="s">
                     Tag
-                </tui-input>
-            </div>
-            <div>
-                <tui-input formControlName="range_a" class="tui-group__inherit-item" tuiTextfieldSize="s">
-                    ID A
-                </tui-input>
-            </div>
-            <div>
-                <tui-input formControlName="range_b" class="tui-group__inherit-item" tuiTextfieldSize="s">
-                    ID B
                 </tui-input>
             </div>
         </div>

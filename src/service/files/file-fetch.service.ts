@@ -64,6 +64,14 @@ export class FileFetchService {
             }))
     }
 
+    public getFilesByQuery(query: FileQuery) {
+        let args = { query: query };
+        return this.mdbapi.invoke<FileDetailsNative[]>(API.get_files_by_query, args)
+            .pipe(map((native) => {
+                return this.convertFromNative(native);
+            }));
+    }
+
     public getImage(file: FileID): Observable<HTMLImageElement> {
         var fulfill: (_: HTMLImageElement | PromiseLike<HTMLImageElement>) => void
         var reject: (_: any) => void
@@ -137,9 +145,7 @@ export interface FileQuery {
     tags_include?: TagID[];
     tags_exclude?: TagID[];
     folders_include?: FileID[];
-    folders_exclude?: FileID[];
     names?: string[];
-    ids?: FileID[];
 }
 
 class CacheEntry {

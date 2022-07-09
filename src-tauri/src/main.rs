@@ -3,8 +3,9 @@
     windows_subsystem = "windows"
 )]
 
-use mdbapi::{DatabaseDetails, DatabaseID, GUIResult, FolderDetails, FileDetails};
-use std::{fs::File, io::Read, path::PathBuf, vec::Vec};
+use mdbapi::GUIResult::{Err, Ok};
+use mdbapi::{DatabaseDetails, DatabaseID, FileDetails, FolderDetails, GUIResult};
+use std::{fs::File, io::Read, path::PathBuf, result, vec::Vec};
 use sysinfo::{ProcessExt, System, SystemExt};
 use tauri::{generate_handler, Manager};
 
@@ -22,12 +23,20 @@ async fn get_tags(database: DatabaseID) -> Vec<mdbapi::TagDetails> {
 /* FRONT END FILE API */
 
 #[tauri::command]
-async fn add_file_tag(database: DatabaseID, file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::Result<FileDetails> {
+async fn add_file_tag(
+    database: DatabaseID,
+    file: mdbapi::FileID,
+    tag: mdbapi::TagID,
+) -> mdbapi::Result<FileDetails> {
     return mdbapi::add_file_tag(database, file, tag);
 }
 
 #[tauri::command]
-async fn del_file_tag(database: DatabaseID, file: mdbapi::FileID, tag: mdbapi::TagID) -> mdbapi::Result<FileDetails> {
+async fn del_file_tag(
+    database: DatabaseID,
+    file: mdbapi::FileID,
+    tag: mdbapi::TagID,
+) -> mdbapi::Result<FileDetails> {
     return mdbapi::del_file_tag(database, file, tag);
 }
 
@@ -38,12 +47,12 @@ async fn get_folders(database: DatabaseID) -> Vec<mdbapi::FolderDetails> {
 
 #[tauri::command]
 async fn add_folder(database: DatabaseID, path: String) -> mdbapi::Result<FolderDetails> {
-    return  mdbapi::add_folder(database, path);
+    return mdbapi::add_folder(database, path);
 }
 
 #[tauri::command]
 async fn del_folder(database: DatabaseID, folder: mdbapi::FileID) -> mdbapi::Result<()> {
-    return  mdbapi::del_folder(database, folder);
+    return mdbapi::del_folder(database, folder);
 }
 
 #[tauri::command]
@@ -64,6 +73,14 @@ async fn get_files_by_tag(
     limit: usize,
 ) -> Vec<mdbapi::FileDetails> {
     mdbapi::get_files_by_tag(database, tag, start, limit)
+}
+
+#[tauri::command]
+async fn get_files_by_query(
+    database: DatabaseID,
+    query: mdbapi::FileQuery,
+) -> mdbapi::Result<Vec<mdbapi::FileDetails>> {
+    mdbapi::get_files_by_query(database, query)
 }
 
 /* FRONT END FILE API END */
@@ -95,21 +112,21 @@ async fn rename_database(id: DatabaseID, new_name: String) -> mdbapi::Result<()>
 /* FRONT END MISC API */
 
 #[tauri::command]
-async fn load_image(database: DatabaseID, file: mdbapi::FileID) -> mdbapi::Result<mdbapi::LoadedImage> {
+async fn load_image(
+    database: DatabaseID,
+    file: mdbapi::FileID,
+) -> mdbapi::Result<mdbapi::LoadedImage> {
     let mut retval = Vec::new();
-    let f = match file {
-        0 => "C:/Users/Ben/Pictures/meme1.jpg",
-        1 => "C:/Users/Ben/Pictures/meme2.jpg",
-        2 => "C:/Users/Ben/Pictures/meme3.jpg",
-        3 => "C:/Users/Ben/Pictures/meme4.jpg",
-        _ => "C:/Users/Ben/Pictures/meme1.jpg",
+    let f = match mdbapi::get_file_by_id(database, file) {
+        Ok(p) => p,
+        Err(e) => return Err(e),
     };
     let b64_string = match File::open(f).and_then(|mut im_file: File| {
         let rd = im_file.read_to_end(&mut retval);
         return rd;
     }) {
-        Ok(_) => base64::encode(retval),
-        Err(e) => return mdbapi::Error::basic(std::format!("read_to_end failed: {e}")),
+        Result::Ok(_) => base64::encode(retval),
+        Result::Err(e) => return mdbapi::Error::basic(std::format!("read_to_end failed: {e}")),
     };
     GUIResult::Ok(mdbapi::LoadedImage::new(
         file,
@@ -154,6 +171,7 @@ fn main() {
             del_folder,
             get_files_by_folder,
             get_files_by_tag,
+            get_files_by_query,
             add_file_tag,
             del_file_tag,
             //DATABASE API
