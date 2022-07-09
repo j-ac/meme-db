@@ -26,7 +26,6 @@ export class InvokeService {
             if (message === undefined) {
                 message = API[func]
             }
-            console.log(args)
             this.alertService.open(gui_msg,
                 {autoClose: false, label: message, status: TuiNotification.Error,})
                 .subscribe();

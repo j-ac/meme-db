@@ -38,15 +38,12 @@ export class FilesViewComponent implements OnInit, OnDestroy {
 
     ngOnInit(): void {
         let a = this.search_form.valueChanges.pipe(map((_) => {
-            console.log(_)
             // Query building
             this.query = {}
             let file_name = this.search_form.controls.file_name.value;
             let folders = this.search_form.controls.folder.value;
             let tags = this.search_form.controls.tag.value;
             if (file_name != null && file_name.length > 0) {
-                console.log("File:")
-                console.log(this.search_form.controls.file_name.value)
                 this.query.names = [file_name];
             }
             if (folders != null) {
@@ -65,7 +62,6 @@ export class FilesViewComponent implements OnInit, OnDestroy {
         //We want to refresh files on tag changes
         let b = this.tagFetch.getTags().pipe(map((_) => {}));
         let sub1 = merge(a,b).pipe(switchMap(() => {
-            console.log("aa")
             return this.fileFetch.getFilesByQuery(this.query);
         }))
         .subscribe({

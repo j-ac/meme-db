@@ -69,7 +69,6 @@ export class EditFoldersDialogComponent implements OnInit {
     delFolder(fd: FolderDetails) {
         this.folderFetchService.delFolder(fd).subscribe({
             next: () => {
-                console.log(fd);
                 this.alert.open(`${fd.path} deleted.`, { status: TuiNotification.Success }).subscribe();
             },
             error: (gui_msg: string) => {
