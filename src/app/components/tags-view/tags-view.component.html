@@ -1,11 +1,15 @@
 <tui-island class="tui-island__paragraph" style="margin-top: 5px;">
-    <h2 class="tui-island__title">Tags</h2>
+    <div>
+        <h2 class="tui-island__title" style="display: inline-block;">Tags</h2>
+        <button tuiButton (click)="openNewTagDialog()" size="s" class="new-tag-button" appearance="icon" 
+        icon="tuiIconPlus"></button>
+    </div>
     <tui-scrollbar class="box">
         <tui-tree [tuiTreeController]="true" [value]="root" [content]="content" [childrenHandler]="handler"></tui-tree>
         <ng-template #content let-value let-node="node">
             <div class="wrapper" cdkDropList [cdkDropListEnterPredicate]="falsePred">
-                <tui-tag [value]="value.name" [style.background-color]="value.color || 'red'" cdkDrag
-                    cdkDropListSortingDisabled [cdkDragData]="value">
+                <tui-tag class="tag" [value]="value.name" [style.background-color]="value.color || 'gray'" cdkDrag
+                    cdkDropListSortingDisabled [cdkDragData]="value" (click)="openTagEditDialog(value)" [hoverable]="true">
                 </tui-tag>
             </div>
         </ng-template>

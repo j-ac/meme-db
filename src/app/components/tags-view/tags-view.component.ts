@@ -1,6 +1,10 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Injector, OnInit } from '@angular/core';
 import { EMPTY_ARRAY, TuiHandler } from '@taiga-ui/cdk';
+import { TuiDialogService } from '@taiga-ui/core';
+import { PolymorpheusComponent } from '@tinkoff/ng-polymorpheus';
 import { TagDetails, TagFetchService, TagID } from 'src/service/tags/tag-fetch.service';
+import { EditTagDialogComponent } from '../dialog/edit-tag-dialog/edit-tag-dialog.component';
+import { NewTagDialogComponent } from '../dialog/new-tag-dialog/new-tag-dialog.component';
 
 @Component({
     selector: 'app-tags-view',
@@ -14,7 +18,11 @@ export class TagsViewComponent implements OnInit {
     root: TagDetails = { id: -1, name: "Root", parents: [] };
     colors: string[] = ["silver", "maroon", "purple", "olivedrab", "navy", "darkorange", "indigo", "yellow", "teal", "turquoise", "skyblue", "seagreen", "sandybrown", "red"];
 
-    constructor(private tagFetch: TagFetchService) { }
+    constructor(
+        private tagFetch: TagFetchService,
+        private dialogService: TuiDialogService,
+        private injector: Injector) {
+    }
 
     /**
      * Translate bottum up architecture to top down (parents, child_lookup)
@@ -63,5 +71,20 @@ export class TagsViewComponent implements OnInit {
 
     falsePred(): boolean {
         return false;
+    }
+
+    openTagEditDialog(tag: TagDetails) {
+        this.dialogService.open<void>(new PolymorpheusComponent(EditTagDialogComponent, this.injector),
+        {
+            data: tag,
+        }).subscribe(() => {
+            this.tagFetch.sample();
+        });
+    }
+
+    openNewTagDialog() {
+        this.dialogService.open<void>(new PolymorpheusComponent(NewTagDialogComponent, this.injector)).subscribe(() => {
+            this.tagFetch.sample();
+        });
     }
 }

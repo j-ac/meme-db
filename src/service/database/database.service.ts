@@ -1,8 +1,6 @@
 import { Injectable, OnInit } from '@angular/core';
-import { Data } from '@angular/router';
 import { invoke } from '@tauri-apps/api/tauri';
-import { from, map, Observable, throwError } from 'rxjs';
-import { GUIResult } from '../util/util';
+import { from, Observable, throwError } from 'rxjs';
 
 /**
  * For holding GUI selected database info
@@ -48,38 +46,18 @@ export class DatabaseService implements OnInit {
     }
 
     addDatabase(new_name: string): Observable<DatabaseDetails> {
-        return from(invoke<GUIResult<DatabaseDetails>>('add_database', { name: new_name })).pipe(map(
-            (res) => {
-                if (res.Err !== undefined || res.Ok === undefined) {
-                    throw res?.Err?.gui_msg || "Critical backend failure";
-                }
-                this.by_id.set(res.Ok.id, res.Ok);
-                this.by_name.set(res.Ok.name, res.Ok);
-                return res.Ok;
-            }
-        ))
+        return from(invoke<DatabaseDetails>('add_database', { name: new_name }));
     }
 
     renameDatabase(id: DatabaseID, new_name: string): Observable<void> {
-        return from(invoke<GUIResult<unknown>>('rename_database', { id: id, new_name: new_name, }))
-            .pipe(map((res) => {
-                if (res.Err !== undefined) {
-                    throw res.Err.gui_msg;
-                }
-            }));
+        return from(invoke<void>('rename_database', { id: id, new_name: new_name, }));
     }
 
     deleteDatabase(id: DatabaseID): Observable<void> {
         if (!this.by_id.has(id)) {
             return throwError(() => { "Critical GUI error! Tried to delete DB that does not exist." });
         }
-        return from(invoke<GUIResult<unknown>>('del_database', { id: id }))
-            .pipe(map((res) => {
-                if (res.Err !== undefined || res.Ok === undefined) {
-                    throw res?.Err?.gui_msg || "Critical backend failure";
-                }
-                return;
-            }));
+        return from(invoke<void>('del_database', { id: id }));
     }
 }
 

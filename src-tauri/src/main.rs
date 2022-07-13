@@ -3,11 +3,10 @@
     windows_subsystem = "windows"
 )]
 
-use mdbapi::GUIResult::{Err, Ok};
-use mdbapi::{DatabaseDetails, DatabaseID, FileDetails, FolderDetails, GUIResult};
-use std::{fs::File, io::Read, path::PathBuf, result, vec::Vec};
+use mdbapi::*;
+use std::{fs::File, io::Read, path::PathBuf, vec::Vec};
 use sysinfo::{ProcessExt, System, SystemExt};
-use tauri::{generate_handler, Manager};
+use tauri::{generate_handler, Manager, State};
 
 mod mdbapi;
 
@@ -15,8 +14,11 @@ mod mdbapi;
 /* FRONT END TAG API */
 
 #[tauri::command]
-async fn get_tags(database: DatabaseID) -> Vec<mdbapi::TagDetails> {
-    mdbapi::get_tags(database)
+async fn get_tags(
+    ctx: State<'_, Context>,
+    database: DatabaseID,
+) -> GUIResult<Vec<TagDetails>> {
+    ctx.get_tags(database)
 }
 
 /* FRONT END TAG API END*/
@@ -24,88 +26,108 @@ async fn get_tags(database: DatabaseID) -> Vec<mdbapi::TagDetails> {
 
 #[tauri::command]
 async fn add_file_tag(
+    ctx: State<'_, Context>,
     database: DatabaseID,
-    file: mdbapi::FileID,
-    tag: mdbapi::TagID,
-) -> mdbapi::Result<FileDetails> {
-    return mdbapi::add_file_tag(database, file, tag);
+    file: FileID,
+    tag: TagID,
+) -> GUIResult<FileDetails> {
+    return ctx.add_file_tag(database, file, tag);
 }
 
 #[tauri::command]
 async fn del_file_tag(
+    ctx: State<'_, Context>,
     database: DatabaseID,
-    file: mdbapi::FileID,
-    tag: mdbapi::TagID,
-) -> mdbapi::Result<FileDetails> {
-    return mdbapi::del_file_tag(database, file, tag);
+    file: FileID,
+    tag: TagID,
+) -> GUIResult<FileDetails> {
+    return ctx.del_file_tag(database, file, tag);
 }
 
 #[tauri::command]
-async fn get_folders(database: DatabaseID) -> Vec<mdbapi::FolderDetails> {
-    return mdbapi::get_folders(database);
+async fn get_folders(
+    ctx: State<'_, Context>,
+    database: DatabaseID,
+) -> GUIResult<Vec<FolderDetails>> {
+    return ctx.get_folders(database);
 }
 
 #[tauri::command]
-async fn add_folder(database: DatabaseID, path: String) -> mdbapi::Result<FolderDetails> {
-    return mdbapi::add_folder(database, path);
+async fn add_folder(
+    ctx: State<'_, Context>,
+    database: DatabaseID,
+    path: String,
+) -> GUIResult<FolderDetails> {
+    return ctx.add_folder(database, path);
 }
 
 #[tauri::command]
-async fn del_folder(database: DatabaseID, folder: mdbapi::FileID) -> mdbapi::Result<()> {
-    return mdbapi::del_folder(database, folder);
+async fn del_folder(
+    ctx: State<'_, Context>,
+    database: DatabaseID,
+    folder: FileID,
+) -> GUIResult<()> {
+    return ctx.del_folder(database, folder);
 }
 
 #[tauri::command]
 async fn get_files_by_folder(
+    ctx: State<'_, Context>,
     database: DatabaseID,
-    folder: mdbapi::FileID,
-    start: mdbapi::FileID,
+    folder: FileID,
+    start: FileID,
     limit: usize,
-) -> Vec<mdbapi::FileDetails> {
-    mdbapi::get_files_by_folder(database, folder, start, limit)
+) -> GUIResult<Vec<FileDetails>> {
+    ctx.get_files_by_folder(database, folder, start, limit)
 }
 
 #[tauri::command]
 async fn get_files_by_tag(
+    ctx: State<'_, Context>,
     database: DatabaseID,
-    tag: mdbapi::TagID,
-    start: mdbapi::FileID,
+    tag: TagID,
+    start: FileID,
     limit: usize,
-) -> Vec<mdbapi::FileDetails> {
-    mdbapi::get_files_by_tag(database, tag, start, limit)
+) -> GUIResult<Vec<FileDetails>> {
+    ctx.get_files_by_tag(database, tag, start, limit)
 }
 
 #[tauri::command]
 async fn get_files_by_query(
+    ctx: State<'_, Context>,
     database: DatabaseID,
-    query: mdbapi::FileQuery,
-) -> mdbapi::Result<Vec<mdbapi::FileDetails>> {
-    mdbapi::get_files_by_query(database, query)
+    query: FileQuery,
+) -> GUIResult<Vec<FileDetails>> {
+    ctx.get_files_by_query(database, query)
 }
 
 /* FRONT END FILE API END */
 /* FRONT END DATABASE API */
 #[tauri::command]
-async fn get_databases() -> Vec<mdbapi::DatabaseDetails> {
-    return vec![mdbapi::DatabaseDetails {
+async fn get_databases(ctx: State<'_, Context>) -> GUIResult<Vec<DatabaseDetails>> {
+    return Success(vec![DatabaseDetails {
         id: 0,
         name: "global".to_string(),
-    }];
+    }]);
 }
 
 #[tauri::command]
-async fn add_database(name: String) -> mdbapi::Result<DatabaseDetails> {
-    return mdbapi::Error::basic_str("Not implemented!");
+async fn add_database(ctx: State<'_, Context>, name: String) -> GUIResult<DatabaseDetails> {
+    return Error::basic_str("Not implemented!");
 }
 
 #[tauri::command]
-async fn del_database(id: DatabaseID) -> mdbapi::Result<()> {
-    return mdbapi::Error::basic_str("Not implemented!");
+async fn del_database(ctx: State<'_, Context>, id: DatabaseID) -> GUIResult<()> {
+    return Error::basic_str("Not implemented!");
 }
 
 #[tauri::command]
-async fn rename_database(id: DatabaseID, new_name: String) -> mdbapi::Result<()> {
-    return mdbapi::Error::basic_str("Not implemented!");
+async fn rename_database(
+    ctx: State<'_, Context>,
+    id: DatabaseID,
+    new_name: String,
+) -> GUIResult<()> {
+    return Error::basic_str("Not implemented!");
 }
 
 /* FRONT END DATABASE API END */
@@ -113,11 +135,12 @@ async fn rename_database(id: DatabaseID, new_name: String) -> mdbapi::Result<()>
 
 #[tauri::command]
 async fn load_image(
+    ctx: State<'_, Context>,
     database: DatabaseID,
-    file: mdbapi::FileID,
-) -> mdbapi::Result<mdbapi::LoadedImage> {
+    file: FileID,
+) -> GUIResult<LoadedImage> {
     let mut retval = Vec::new();
-    let f = match mdbapi::get_file_by_id(database, file) {
+    let f = match ctx.get_file_by_id(database, file) {
         Ok(p) => p,
         Err(e) => return Err(e),
     };
@@ -126,9 +149,9 @@ async fn load_image(
         return rd;
     }) {
         Result::Ok(_) => base64::encode(retval),
-        Result::Err(e) => return mdbapi::Error::basic(std::format!("read_to_end failed: {e}")),
+        Result::Err(e) => return Error::basic(std::format!("read_to_end failed: {e}")),
     };
-    GUIResult::Ok(mdbapi::LoadedImage::new(
+    Success(LoadedImage::new(
         file,
         b64_string,
         "jpg".to_string(),
@@ -182,6 +205,11 @@ fn main() {
             //MISC API
             load_image,
         ])
+        .setup(|app| {
+            let ctx = Context::setup();
+            app.manage(ctx);
+            std::result::Result::Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

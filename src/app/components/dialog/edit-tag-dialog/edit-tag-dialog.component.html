@@ -1,1 +1,22 @@
-<p>edit-tag-dialog works!</p>
+<h2 style="margin-top: 0px;">
+    Editing
+    <tui-tag  [value]="tag.name" size="l" [style.background-color]="tag.color"></tui-tag>
+</h2>
+<button tuiButton type="button" size="m" style="margin: 0.2ch;" (click)="addParent()">Add Parent</button>
+<tui-input-color
+    tuiTextfieldSize="m"
+    style="display: inline-block; margin: 0.2ch;"
+    class="b-form"
+    [(ngModel)]="tag.color">
+    Tag colour
+</tui-input-color>
+<ul class="tui-list tui-list_large" style="margin: 1ch;">
+    <li class="tui-list__item" *ngFor="let p of this.tag.parents">
+        {{p.name}}
+        <button tuiIconButton type="button" appearance="icon" icon="tuiIconCloseLarge"
+            class=" tui-margin_bottom-5" size="xs" (click)="delParent(p)"></button>
+    </li>
+</ul>
+<button tuiButton type="button" size="m" (click)="submit()">
+    Done
+</button>

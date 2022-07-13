@@ -7,7 +7,7 @@
         <div>
             <div *ngFor="let t of this.image?.tags" style="display: inline-block; padding: 1px;" cdkDrag
                 [cdkDragData]="t">
-                <tui-tag [value]="t.name" [style.background-color]="t.color || 'red'" [removable]="true"
+                <tui-tag [value]="t.name" [style.background-color]="t.color || 'gray'" [removable]="true"
                     (edited)="deleted(t)"></tui-tag>
             </div>
         </div>

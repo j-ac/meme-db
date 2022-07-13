@@ -1,10 +1,7 @@
-import { NgIfContext } from '@angular/common';
 import { Injectable } from '@angular/core';
-import { from, map, Observable, Observer } from 'rxjs';
-import { DatabaseService } from '../database/database.service';
+import { map, Observable, Observer } from 'rxjs';
 import { FileID } from '../files/file-fetch.service';
 import { API, InvokeService } from '../util/invoke.service';
-import { GUIResult } from '../util/util';
 
 @Injectable({
     providedIn: 'root'

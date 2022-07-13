@@ -1,10 +1,7 @@
 import { Injectable } from '@angular/core';
-import { TuiAlertService, TuiNotification } from '@taiga-ui/core';
-import { invoke } from '@tauri-apps/api';
-import { from, map, Observable, Observer, of, switchMap, tap } from 'rxjs';
-import { TagDetails, TagDetailsNative, TagFetchService, TagID } from '../tags/tag-fetch.service';
+import { from, map, Observable, switchMap } from 'rxjs';
+import { TagDetails, TagFetchService, TagID } from '../tags/tag-fetch.service';
 import { API, InvokeService } from '../util/invoke.service';
-import { GUIResult } from '../util/util';
 
 @Injectable({
     providedIn: 'root'

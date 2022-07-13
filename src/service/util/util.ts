@@ -1,9 +1,6 @@
 export class Util {
 }
 
-//mdbapi::Result
-export type GUIResult<T> = Result<T, Error>
-
 //std::result::Result
 export interface Result<T, E> {
     Ok?: T,
