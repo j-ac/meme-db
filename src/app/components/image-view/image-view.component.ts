@@ -62,10 +62,6 @@ export class ImageViewComponent implements OnInit {
                 return this.alert.open("Tag added to",
                     { label: "Success!", status: TuiNotification.Success });
             },
-            error: (gui_msg) => {
-                this.alert.open(gui_msg,
-                    { label: "Failed to add tag!", status: TuiNotification.Error, autoClose: false, }).subscribe();
-            }
         });
     }
 
@@ -76,9 +72,6 @@ export class ImageViewComponent implements OnInit {
             next: (newFile) => {
                 newFile.tags = this.tags.getFlattened(newFile.tags);
                 this.image = newFile;
-            }, error: (gui_msg) => {
-                this.alert.open(gui_msg,
-                    { label: "Failed to delete tag!", status: TuiNotification.Error, autoClose: false, }).subscribe();
             }
         });
 

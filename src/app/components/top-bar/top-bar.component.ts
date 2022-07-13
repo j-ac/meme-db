@@ -6,6 +6,7 @@ import { PolymorpheusComponent } from '@tinkoff/ng-polymorpheus';
 import { NewDatabaseDialogComponent } from '../dialog/new-database-dialog/new-database-dialog.component';
 import { from, switchMap } from 'rxjs';
 import { EditFoldersDialogComponent } from '../dialog/edit-folders-dialog/edit-folders-dialog.component';
+import { Error } from 'src/service/util/util';
 
 
 @Component({
@@ -42,12 +43,6 @@ export class TopBarComponent implements OnInit {
                     this.database_names.push(newDB.name);
                     this.alert.open(`"${newDB.name}" added`).subscribe();
                 },
-                error: (gui_msg) => {
-                    this.alert
-                        .open(gui_msg,
-                            { label: "Failed to add new database!", status: TuiNotification.Error, autoClose: false, })
-                        .subscribe();
-                }
             });
     }
 

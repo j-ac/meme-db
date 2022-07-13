@@ -54,14 +54,6 @@ export class EditFoldersDialogComponent implements OnInit {
         })).subscribe({
             next: (fd) => {
                 this.alert.open(`${fd.path} added.`, { status: TuiNotification.Success }).subscribe();
-            },
-            error: (gui_msg: string) => {
-                this.alert.open(gui_msg,
-                    {
-                        label: "Failed to add folder!",
-                        status: TuiNotification.Error,
-                        autoClose: false,
-                    }).subscribe();
             }
         })
     }
@@ -71,14 +63,6 @@ export class EditFoldersDialogComponent implements OnInit {
             next: () => {
                 this.alert.open(`${fd.path} deleted.`, { status: TuiNotification.Success }).subscribe();
             },
-            error: (gui_msg: string) => {
-                this.alert.open(gui_msg,
-                    {
-                        label: "Failed to delete folder!",
-                        status: TuiNotification.Error,
-                        autoClose: false,
-                    }).subscribe();
-            }
         });
     }
 
