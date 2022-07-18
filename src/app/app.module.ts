@@ -19,7 +19,9 @@ import { NewDatabaseDialogComponent } from './components/dialog/new-database-dia
 import { EditFoldersDialogComponent } from './components/dialog/edit-folders-dialog/edit-folders-dialog.component';
 import { NewTagDialogComponent } from './components/dialog/new-tag-dialog/new-tag-dialog.component';
 import { EditTagDialogComponent } from './components/dialog/edit-tag-dialog/edit-tag-dialog.component';
-import { TuiColorPickerModule, TuiEditorModule, TuiEditorSocketModule, TuiPaletteModule, TuiInputColorModule } from '@taiga-ui/addon-editor'
+import { TuiColorPickerModule, TuiEditorModule, TuiEditorSocketModule, TuiPaletteModule, TuiInputColorModule } from '@taiga-ui/addon-editor';
+import { TagComponent } from './components/tag/tag.component';
+import { TagSelectDialogComponent } from './components/dialog/tag-select-dialog/tag-select-dialog.component'
 
 
 
@@ -35,6 +37,8 @@ import { TuiColorPickerModule, TuiEditorModule, TuiEditorSocketModule, TuiPalett
         EditFoldersDialogComponent,
         NewTagDialogComponent,
         EditTagDialogComponent,
+        TagComponent,
+        TagSelectDialogComponent,
     ],
     imports: [
         //Angular built-ins

@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable, Observer } from 'rxjs';
-import { API, InvokeService } from '../util/invoke.service';
+import { map, Observable, Observer, switchMap } from 'rxjs';
+import { API, MDBAPI } from '../util/invoke.service';
 
 @Injectable({
     providedIn: 'root'
@@ -12,40 +12,43 @@ export class TagFetchService {
     name_map = new Map<string, TagDetails>()
     tag_map = new Map<TagID, TagDetails>()
 
-    constructor(private mdbapi: InvokeService) {
+    constructor(private mdbapi: MDBAPI) {
         this.sample()
     }
 
-    public sample() {
-        this.mdbapi.invoke_nores<TagDetailsNative[]>(API.get_tags).subscribe({
-            next: (tags) => {
-                this.tagsNative = tags;
-                this.tags = [];
-                this.name_map.clear();
-                this.tag_map.clear();
+    public sample(): Observable<TagDetails[]> {
+        return this.mdbapi.call<TagDetailsNative[]>(API.get_tags, undefined,
+            {
+                preHook: (tags) => {
+                    this.tagsNative = tags;
+                    this.tags = [];
+                    this.name_map.clear();
+                    this.tag_map.clear();
 
-                let id_lookup = new Map<TagID, TagDetails>();
-                for (let tagN of tags) {
-                    let tag: TagDetails = { id: tagN.id, name: tagN.name, parents: [] };
-                    id_lookup.set(tagN.id, tag);
-                    // Add tag to underlying datastructures
-                    this.tags.push(tag);
-                    this.name_map.set(tag.name, tag);
-                    this.tag_map.set(tag.id, tag);
-                }
-                for (let tagN of this.tagsNative) {
-                    let child = id_lookup.get(tagN.id)!;
-                    for (let p of tagN.parents) {
-                        let parent = id_lookup.get(p)!;
-                        child.parents.push(parent);
+                    let id_lookup = new Map<TagID, TagDetails>();
+                    for (let tagN of tags) {
+                        let tag: TagDetails = { id: tagN.id, name: tagN.name, parents: [] };
+                        id_lookup.set(tagN.id, tag);
+                        // Add tag to underlying datastructures
+                        this.tags.push(tag);
+                        this.name_map.set(tag.name, tag);
+                        this.tag_map.set(tag.id, tag);
+                    }
+                    for (let tagN of this.tagsNative) {
+                        let child = id_lookup.get(tagN.id)!;
+                        for (let p of tagN.parents) {
+                            let parent = id_lookup.get(p)!;
+                            child.parents.push(parent);
+                        }
+                    }
+                    this.tags = Array.from(id_lookup.values());
+                    for (let obs of this.observers) {
+                        obs.next(this.tags);
                     }
                 }
-                this.tags = Array.from(id_lookup.values());
-                for (let obs of this.observers) {
-                    obs.next(this.tags);
-                }
-            }
-        });
+            }).pipe(map(() => {
+                return this.tags;
+            }))
     }
 
     public getTags(): Observable<TagDetails[]> {
@@ -87,6 +90,20 @@ export class TagFetchService {
             }
         }
         return ret;
+    }
+
+    public updateByTag(tag: TagDetails): Observable<TagDetails[]> {
+        let argTag: TagDetailsNative = {
+            id: tag.id,
+            name: tag.name,
+            parents: tag.parents.map((t) => {
+                return t.id;
+            })
+        }
+        return this.mdbapi.call<null>(API.mod_tag, { tag: argTag })
+            .pipe(switchMap(() => {
+                return this.sample();
+            }));
     }
 }
 

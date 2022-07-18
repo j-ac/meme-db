@@ -1,6 +1,7 @@
 import { Injectable, OnInit } from '@angular/core';
 import { invoke } from '@tauri-apps/api/tauri';
-import { from, Observable, throwError } from 'rxjs';
+import { from, map, Observable, tap, throwError } from 'rxjs';
+import { API, InvokeService, MDBAPI } from '../util/invoke.service';
 
 /**
  * For holding GUI selected database info
@@ -14,7 +15,7 @@ export class DatabaseService implements OnInit {
     public by_id = new Map<DatabaseID, DatabaseDetails>()
     public by_name = new Map<string, DatabaseDetails>()
 
-    constructor() {
+    constructor(private invk: InvokeService) {
         let builtin: DatabaseDetails = { id: 0, name: "Built-in" };
         this.by_id.set(0, builtin);
         this.by_name.set(builtin.name, builtin);
@@ -25,14 +26,17 @@ export class DatabaseService implements OnInit {
     }
 
     getDatabases() {
-        invoke<DatabaseDetails[]>('get_databases').then((dds) => {
-            this.by_id.clear();
-            this.by_name.clear();
-            for (let d of dds) {
-                this.by_id.set(d.id, d);
-                this.by_name.set(d.name, d);
-            }
-        })
+        this.invk.invoke<DatabaseDetails[]>(API.get_databases, undefined,
+            {
+                preHook: (dds) => {
+                    this.by_id.clear();
+                    this.by_name.clear();
+                    for (let d of dds) {
+                        this.by_id.set(d.id, d);
+                        this.by_name.set(d.name, d);
+                    }
+                }
+            });
     }
 
     useDatabase(id: DatabaseID) {
@@ -46,18 +50,37 @@ export class DatabaseService implements OnInit {
     }
 
     addDatabase(new_name: string): Observable<DatabaseDetails> {
-        return from(invoke<DatabaseDetails>('add_database', { name: new_name }));
+        return this.invk.invoke<DatabaseDetails>(API.add_database, { name: new_name },
+            {
+                preHook: (dd) => {
+                    this.by_id.set(dd.id, dd);
+                    this.by_name.set(dd.name, dd);
+                }
+            });
     }
 
-    renameDatabase(id: DatabaseID, new_name: string): Observable<void> {
-        return from(invoke<void>('rename_database', { id: id, new_name: new_name, }));
+    renameDatabase(id: DatabaseID, new_name: string): Observable<DatabaseDetails> {
+        return this.invk.invoke<DatabaseDetails>(API.rename_database, { id: id, new_name: new_name, },
+            {
+                preHook: (dd) => {
+                    this.by_id.set(dd.id, dd);
+                    this.by_name.set(dd.name, dd);
+                }
+            });
     }
 
     deleteDatabase(id: DatabaseID): Observable<void> {
-        if (!this.by_id.has(id)) {
+        let deled = this.by_id.get(id);
+        if (deled === undefined) {
             return throwError(() => { "Critical GUI error! Tried to delete DB that does not exist." });
         }
-        return from(invoke<void>('del_database', { id: id }));
+        return this.invk.invoke<void>(API.del_database, { id: id },
+            {
+                preHook: () => {
+                    this.by_id.delete(id);
+                    this.by_name.delete(deled!.name);
+                }
+            })
     }
 }
 

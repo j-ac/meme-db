@@ -1,0 +1,3 @@
+<tui-tag class="tag" [value]="tag.name" [style.background]="tag.color || 'gray'"
+    (click)="onClick()" [hoverable]="hover" [editable]="edit" [size]="size" (edited)="handleTagEdited($event)">
+</tui-tag>

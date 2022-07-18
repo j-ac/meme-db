@@ -21,6 +21,14 @@ async fn get_tags(
     ctx.get_tags(database)
 }
 
+#[tauri::command]
+async fn mod_tag(
+    ctx: State<'_, Context>,
+    database: DatabaseID,
+) -> GUIResult<Vec<TagDetails>> {
+    ctx.get_tags(database)
+}
+
 /* FRONT END TAG API END*/
 /* FRONT END FILE API */
 
@@ -188,6 +196,7 @@ fn main() {
         .invoke_handler(generate_handler![
             //TAG API
             get_tags,
+            mod_tag,
             //FILE API
             get_folders,
             add_folder,

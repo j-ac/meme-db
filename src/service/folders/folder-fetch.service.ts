@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { map, Observable, Observer } from 'rxjs';
 import { FileID } from '../files/file-fetch.service';
-import { API, InvokeService } from '../util/invoke.service';
+import { API, MDBAPI } from '../util/invoke.service';
 
 @Injectable({
     providedIn: 'root'
@@ -13,12 +13,12 @@ export class FolderFetchService {
     folder_map = new Map<FileID, FolderDetails>()
     name_map = new Map<string, FolderDetails>()
 
-    constructor(private mdbapi: InvokeService) {
+    constructor(private mdbapi: MDBAPI) {
         this.sample()
     }
 
     public sample() {
-        this.mdbapi.invoke_nores<FolderDetails[]>(API.get_folders).subscribe({
+        this.mdbapi.call_rores<FolderDetails[]>(API.get_folders).subscribe({
             next: (fd) => {
                 this.folders = fd;
                 this.folder_map.clear();
@@ -58,7 +58,7 @@ export class FolderFetchService {
         let args = {
             path: path,
         };
-        return this.mdbapi.invoke<FolderDetails>(API.add_folder, args).pipe(map((fd) => {
+        return this.mdbapi.call<FolderDetails>(API.add_folder, args).pipe(map((fd) => {
             this.folders.push(fd);
             this.sendFolders();
             return fd;
@@ -69,7 +69,7 @@ export class FolderFetchService {
         let args = {
             folder: f.id,
         };
-        return this.mdbapi.invoke<null>(API.del_folder, args).pipe(map(() => {
+        return this.mdbapi.call<null>(API.del_folder, args).pipe(map(() => {
             this.folders.splice(this.folders.findIndex((v) => { v.id === f.id }), 1);
             this.sendFolders();
             return;

@@ -158,6 +158,10 @@ impl Context {
         ])
     }
 
+    pub fn mod_tag_by_tag(&self, database: DatabaseID, tag: TagDetails) -> GUIResult<TagDetails> {
+        Error::basic_str("Not implemented!")
+    }
+
     pub fn add_file_tag(
         &self,
         database: DatabaseID,

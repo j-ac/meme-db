@@ -1,20 +1,21 @@
-<h2 style="margin-top: 0px;">
-    Editing
-    <tui-tag  [value]="tag.name" size="l" [style.background-color]="tag.color"></tui-tag>
-</h2>
+<div style="margin-bottom: 1ch;">
+    <h2 style="margin: 0px; display: inline-block;">
+        Editing
+    </h2>
+    <app-tag [tag]="tag" [edit]="true" [hover]="true" [size]="'l'" (tag_edit)="setName($event)"
+        style="display: inline-block; margin-left: 0.5ch;">
+    </app-tag>
+    <tui-input-color tuiTextfieldSize="m" style="display: inline-block; position: relative; top: 5px; margin: 0.5ch;"
+        class="b-form" [(ngModel)]="tag.color">
+        Tag colour
+    </tui-input-color>
+</div>
 <button tuiButton type="button" size="m" style="margin: 0.2ch;" (click)="addParent()">Add Parent</button>
-<tui-input-color
-    tuiTextfieldSize="m"
-    style="display: inline-block; margin: 0.2ch;"
-    class="b-form"
-    [(ngModel)]="tag.color">
-    Tag colour
-</tui-input-color>
 <ul class="tui-list tui-list_large" style="margin: 1ch;">
     <li class="tui-list__item" *ngFor="let p of this.tag.parents">
         {{p.name}}
-        <button tuiIconButton type="button" appearance="icon" icon="tuiIconCloseLarge"
-            class=" tui-margin_bottom-5" size="xs" (click)="delParent(p)"></button>
+        <button tuiIconButton type="button" appearance="icon" icon="tuiIconCloseLarge" class=" tui-margin_bottom-5"
+            size="xs" (click)="delParent(p)"></button>
     </li>
 </ul>
 <button tuiButton type="button" size="m" (click)="submit()">

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { from, map, Observable, switchMap } from 'rxjs';
 import { TagDetails, TagFetchService, TagID } from '../tags/tag-fetch.service';
-import { API, InvokeService } from '../util/invoke.service';
+import { API, MDBAPI } from '../util/invoke.service';
 
 @Injectable({
     providedIn: 'root'
@@ -12,7 +12,7 @@ export class FileFetchService {
 
     constructor(
         private tagFetch: TagFetchService,
-        private mdbapi: InvokeService,
+        private mdbapi: MDBAPI,
     ) {
         setInterval(() => {
             const now = Date.now()
@@ -26,12 +26,12 @@ export class FileFetchService {
 
     public getFilesByFolderNative(folder: FileID, start: FileID, limit: number): Observable<FileDetailsNative[]> {
         const args = { folder: folder, start: start, limit: limit };
-        return this.mdbapi.invoke_nores<FileDetailsNative[]>(API.get_files_by_folder, args);
+        return this.mdbapi.call_rores<FileDetailsNative[]>(API.get_files_by_folder, args);
     }
 
     public getFilesByTagNative(tag: TagID, start: FileID, limit: number): Observable<FileDetailsNative[]> {
         let args = { tag: tag, start: start, limit: limit };
-        return this.mdbapi.invoke_nores<FileDetailsNative[]>(API.get_files_by_tag, args);
+        return this.mdbapi.call_rores<FileDetailsNative[]>(API.get_files_by_tag, args);
     }
 
     private convertFromNative(native: FileDetailsNative[]): FileDetails[] {
@@ -63,7 +63,7 @@ export class FileFetchService {
 
     public getFilesByQuery(query: FileQuery) {
         let args = { query: query };
-        return this.mdbapi.invoke<FileDetailsNative[]>(API.get_files_by_query, args)
+        return this.mdbapi.call<FileDetailsNative[]>(API.get_files_by_query, args)
             .pipe(map((native) => {
                 return this.convertFromNative(native);
             }));
@@ -90,7 +90,7 @@ export class FileFetchService {
             })
         }
 
-        return this.mdbapi.invoke<LoadedImage>(API.load_image, { file: file }).pipe(switchMap((image_data) => {
+        return this.mdbapi.call<LoadedImage>(API.load_image, { file: file }).pipe(switchMap((image_data) => {
             let image = new Image();
             image.onload = () => {
                 this.image_cache.set(file, new CacheEntry(image));
@@ -102,7 +102,7 @@ export class FileFetchService {
     }
 
     public addTag(file: FileID, tag: TagID): Observable<FileDetails> {
-        return this.mdbapi.invoke<FileDetailsNative>(API.add_file_tag, { file: file, tag: tag })
+        return this.mdbapi.call<FileDetailsNative>(API.add_file_tag, { file: file, tag: tag })
             .pipe(switchMap((native) => {
                 return this.convertFromNative([native]);
             }));
@@ -110,7 +110,7 @@ export class FileFetchService {
 
     public delTag(file: FileID, tag: TagID): Observable<FileDetails> {
         let args = { file: file, tag: tag };
-        return this.mdbapi.invoke<FileDetailsNative>(API.del_file_tag, args)
+        return this.mdbapi.call<FileDetailsNative>(API.del_file_tag, args)
             .pipe(switchMap((native) => {
                 return this.convertFromNative([native]);
             }));
