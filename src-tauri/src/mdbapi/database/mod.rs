@@ -1,12 +1,16 @@
 use rusqlite::{Connection, MappedRows};
 use std::{collections::HashMap, path::Path};
 
-use super::{TagDetails, TagID};
+use super::*;
 
-pub mod prelude {}
 struct Database<'a> {
     conn: Connection,
     taggraph: TagGraph<'a>,
+}
+
+struct DatabaseMap<'a> {
+    map: HashMap<DatabaseID, Database<'a>>,
+    largest_id: usize,
 }
 
 /// Stores parent-child relationships between all tags
@@ -21,6 +25,7 @@ struct TagNode<'a> {
 
 struct Image {
     id: i32,
+    path: String,
 }
 
 struct Tag {
@@ -28,14 +33,15 @@ struct Tag {
     name: String,
 }
 
-impl Database<'_> {
-    fn open<P: AsRef<Path>>(path: P) -> Self {
+impl<'a> Database<'a> {
+    fn open<P: AsRef<Path>>(path: P, dbmap: DatabaseMap<'a>, ) -> Self {
         let connection = Connection::open(path).unwrap();
 
         connection
             .execute(
                 "CREATE TABLE IF NOT EXISTS image (
-                id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE)",
+                id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE)
+                path TEXT UNIQUE",
                 [],
             )
             .unwrap();
@@ -67,12 +73,16 @@ impl Database<'_> {
             )
             .unwrap();
 
-        Self {
+        let ret = Self {
             conn: connection,
             taggraph: TagGraph {
                 graph: HashMap::new(),
             },
-        }
+        };
+
+        dbmap.map.insert(dbmap.largest_id + 1, ret);
+        ret
+        
     }
 
     ///Retrieve rows from child_to_parent table, construct a [TagGraph]
@@ -106,12 +116,18 @@ impl Database<'_> {
                 Ok(TagDetails {
                     id: row.get(0)?,
                     name: row.get(1)?,
-                    parents: vec![],
+                    parents: vec![], //TODO: implement this
                 })
             })
             .unwrap();
 
         Vec::from_iter(tag_iter.map(|tag| tag.unwrap()))
+    }
+
+    pub fn insert_into_tag_records(&self, file: FileID, tag: TagID) {
+        //TODO, make this actually use the DatabaseID to select the appropriate one    
+        self.conn.execute("INSERT INTO tag_records
+        (image_id, tag_id) VALUES (?1, ?2)", [file, tag]).unwrap(); 
     }
 }
 

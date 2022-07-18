@@ -3,6 +3,8 @@ use std::option::Option;
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
+mod database;
+
 impl Context {
     pub fn get_files_by_folder(
         &self,
