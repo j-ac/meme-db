@@ -3,6 +3,8 @@
     windows_subsystem = "windows"
 )]
 
+#![allow(unused)]
+
 use mdbapi::*;
 use std::{fs::File, io::Read, path::PathBuf, vec::Vec};
 use sysinfo::{ProcessExt, System, SystemExt};
@@ -39,7 +41,7 @@ async fn add_file_tag(
     file: FileID,
     tag: TagID,
 ) -> GUIResult<FileDetails> {
-    return ctx.add_file_tag(database, file, tag);
+    ctx.add_file_tag(database, file, tag)
 }
 
 #[tauri::command]
@@ -49,7 +51,7 @@ async fn del_file_tag(
     file: FileID,
     tag: TagID,
 ) -> GUIResult<FileDetails> {
-    return ctx.del_file_tag(database, file, tag);
+    ctx.del_file_tag(database, file, tag)
 }
 
 #[tauri::command]
@@ -57,7 +59,7 @@ async fn get_folders(
     ctx: State<'_, Context>,
     database: DatabaseID,
 ) -> GUIResult<Vec<FolderDetails>> {
-    return ctx.get_folders(database);
+    ctx.get_folders(database)
 }
 
 #[tauri::command]
@@ -66,7 +68,7 @@ async fn add_folder(
     database: DatabaseID,
     path: String,
 ) -> GUIResult<FolderDetails> {
-    return ctx.add_folder(database, path);
+    ctx.add_folder(database, path)
 }
 
 #[tauri::command]
@@ -75,7 +77,7 @@ async fn del_folder(
     database: DatabaseID,
     folder: FileID,
 ) -> GUIResult<()> {
-    return ctx.del_folder(database, folder);
+    ctx.del_folder(database, folder)
 }
 
 #[tauri::command]
@@ -113,20 +115,20 @@ async fn get_files_by_query(
 /* FRONT END DATABASE API */
 #[tauri::command]
 async fn get_databases(ctx: State<'_, Context>) -> GUIResult<Vec<DatabaseDetails>> {
-    return Success(vec![DatabaseDetails {
+    Ok(vec![DatabaseDetails {
         id: 0,
         name: "global".to_string(),
-    }]);
+    }])
 }
 
 #[tauri::command]
 async fn add_database(ctx: State<'_, Context>, name: String) -> GUIResult<DatabaseDetails> {
-    return Error::basic_str("Not implemented!");
+    Err(Error::basic("Not implemented!"))
 }
 
 #[tauri::command]
 async fn del_database(ctx: State<'_, Context>, id: DatabaseID) -> GUIResult<()> {
-    return Error::basic_str("Not implemented!");
+    Err(Error::basic("Not implemented!"))
 }
 
 #[tauri::command]
@@ -135,7 +137,7 @@ async fn rename_database(
     id: DatabaseID,
     new_name: String,
 ) -> GUIResult<()> {
-    return Error::basic_str("Not implemented!");
+    Err(Error::basic("Not implemented!"))
 }
 
 /* FRONT END DATABASE API END */
@@ -153,13 +155,12 @@ async fn load_image(
         Err(e) => return Err(e),
     };
     let b64_string = match File::open(f).and_then(|mut im_file: File| {
-        let rd = im_file.read_to_end(&mut retval);
-        return rd;
+        im_file.read_to_end(&mut retval)
     }) {
         Result::Ok(_) => base64::encode(retval),
-        Result::Err(e) => return Error::basic(std::format!("read_to_end failed: {e}")),
+        Result::Err(e) => return Err(Error::basic(std::format!("read_to_end failed: {e}"))),
     };
-    Success(LoadedImage::new(
+    Ok(LoadedImage::new(
         file,
         b64_string,
         "jpg".to_string(),
