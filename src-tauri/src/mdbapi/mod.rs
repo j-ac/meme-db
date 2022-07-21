@@ -11,7 +11,7 @@ impl Context {
         start: FileID,
         limit: usize,
     ) -> GUIResult<Vec<FileDetails>> {
-        Success(vec![
+        Ok(vec![
             FileDetails {
                 id: 0,
                 name: "meme1.jpg".to_string(),
@@ -46,7 +46,7 @@ impl Context {
         start: FileID,
         limit: usize,
     ) -> GUIResult<Vec<FileDetails>> {
-        Success(vec![
+        Ok(vec![
             FileDetails {
                 id: 0,
                 name: "meme1.jpg".to_string(),
@@ -79,22 +79,18 @@ impl Context {
         database: DatabaseID,
         query: FileQuery,
     ) -> GUIResult<Vec<FileDetails>> {
-        Error::basic_str("Not implemented!")
+        Err(Error::basic("Not implemented!"))
     }
 
-    pub fn get_file_by_id(&self, database: DatabaseID, file: FileID) -> GUIResult<&'static Path> {
-        let f = match file {
-            0 => "C:/Users/Ben/Pictures/meme1.jpg",
-            1 => "C:/Users/Ben/Pictures/meme2.jpg",
-            2 => "C:/Users/Ben/Pictures/meme3.jpg",
-            3 => "C:/Users/Ben/Pictures/meme4.jpg",
-            _ => return Error::basic_str("Bad ID!"),
-        };
-        return Success(Path::new(f));
+    pub fn get_file_by_id(&self, database: DatabaseID, file: FileID) -> GUIResult<PathBuf> {
+        match file {
+            n @ 0..=3 => Ok(format!("C:/Users/Ben/Pictures/meme{}.jpg", n + 1).into()),
+            _ => Err(Error::basic("Bad ID!")),
+        }
     }
 
     pub fn get_folders(&self, database: DatabaseID) -> GUIResult<Vec<FolderDetails>> {
-        Success(vec![
+        Ok(vec![
             FolderDetails {
                 id: 0,
                 path: PathBuf::from("C:/Users/Ben/Pictures/"),
@@ -111,15 +107,15 @@ impl Context {
         database: DatabaseID,
         location: P,
     ) -> GUIResult<FolderDetails> {
-        return Error::basic_str("Not implemented!");
+        Err(Error::basic("Not implemented!"))
     }
 
     pub fn del_folder(&self, database: DatabaseID, folder: FileID) -> GUIResult<()> {
-        return Error::basic_str("Not implemented!");
+        Err(Error::basic("Not implemented!"))
     }
 
     pub fn get_tags(&self, database: DatabaseID) -> GUIResult<Vec<TagDetails>> {
-        Success(vec![
+        Ok(vec![
             TagDetails {
                 id: 0,
                 name: "TagA".to_string(),
@@ -159,7 +155,7 @@ impl Context {
     }
 
     pub fn mod_tag_by_tag(&self, database: DatabaseID, tag: TagDetails) -> GUIResult<TagDetails> {
-        Error::basic_str("Not implemented!")
+        Err(Error::basic("Not implemented!"))
     }
 
     pub fn add_file_tag(
@@ -168,7 +164,7 @@ impl Context {
         file: FileID,
         tag: TagID,
     ) -> GUIResult<FileDetails> {
-        return Error::basic_str("Not implemented!");
+        Err(Error::basic("Not implemented!"))
     }
 
     pub fn del_file_tag(
@@ -177,11 +173,11 @@ impl Context {
         file: FileID,
         tag: TagID,
     ) -> GUIResult<FileDetails> {
-        return Error::basic_str("Not implemented!");
+        Err(Error::basic("Not implemented!"))
     }
 
     pub fn setup() -> Self {
-        return Self {};
+        Self {}
     }
 }
 
@@ -261,23 +257,12 @@ pub struct Context {}
 pub type GUIResult<T> = Result<T, Error>;
 
 impl Error {
-    pub fn basic_str<T>(gui_msg: &'static str) -> GUIResult<T> {
-        GUIResult::Err(Error {
-            gui_msg: gui_msg.to_string(),
+    pub fn basic<S: AsRef<str>>(gui_msg: S) -> Self {
+        Error {
+            gui_msg: gui_msg.as_ref().to_string(),
             err_type: ErrorType::Basic,
-        })
+        }
     }
-
-    pub fn basic<T>(gui_msg: String) -> GUIResult<T> {
-        GUIResult::Err(Error {
-            gui_msg: gui_msg,
-            err_type: ErrorType::Basic,
-        })
-    }
-}
-
-pub fn Success<T>(t: T) -> GUIResult<T> {
-    GUIResult::Ok(t)
 }
 
 pub mod daemon {
