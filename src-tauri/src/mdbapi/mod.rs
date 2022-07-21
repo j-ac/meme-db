@@ -3,9 +3,11 @@ use std::option::Option;
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
+use self::database::DatabaseMap;
+
 mod database;
 
-impl Context {
+impl Context<'_> {
     pub fn get_files_by_folder(
         &self,
         database: DatabaseID,
@@ -178,7 +180,13 @@ impl Context {
         file: FileID,
         tag: TagID,
     ) -> GUIResult<FileDetails> {
-        Err(Error::basic("Not implemented!"))
+        let db = self.dbmap.get(database).ok_or(Error {
+            gui_msg: std::format!("Database ID {} not recognised", database),
+            err_type: ErrorType::Basic,
+        })?;
+
+        db.insert_into_tag_records(file, tag);
+        db.get_details_on_file(tag)
     }
 
     pub fn del_file_tag(
@@ -191,7 +199,7 @@ impl Context {
     }
 
     pub fn setup() -> Self {
-        Self {}
+        Self { dbmap: todo!() }
     }
 }
 
@@ -278,12 +286,15 @@ pub enum ErrorType {
     Basic,
     Arguments,
     Internal,
+    Logical,
     Filesystem,
     Database,
     SysAPI,
 }
 
-pub struct Context {}
+pub struct Context<'a> {
+    dbmap: DatabaseMap<'a>,
+}
 
 pub type GUIResult<T> = Result<T, Error>;
 
