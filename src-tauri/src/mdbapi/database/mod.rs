@@ -25,11 +25,62 @@ struct TagGraph<'a> {
     graph: HashMap<TagID, TagNode<'a>>,
 }
 
+impl TagGraph<'static> {
+    //TagGraph with no data
+    fn new() -> TagGraph<'static> {
+        TagGraph {
+            graph: HashMap::new(),
+        }
+    }
+
+    // Make a new TagGraph and fill its HashMap with the data from an SQL database
+    fn new_populated(conn: Connection) -> TagGraph<'static> {
+        let mut graph = TagGraph::new();
+        let mut stmt = conn.prepare("SELECT * FROM child_to_parent").unwrap();
+        let mut rows = stmt.query([]).unwrap();
+
+        while let Some(row) = rows.next().unwrap() {
+            let childID: TagID = row.get_unwrap(1);
+            let parentID: TagID = row.get_unwrap(0);
+
+            if !graph.graph.contains_key(&childID) {
+                graph.graph.insert(childID, TagNode::new_isolated_node(childID, &conn));
+            }
+
+            if !graph.graph.contains_key(&parentID) {
+                graph.graph.insert(parentID, TagNode::new_isolated_node(parentID, &conn));
+            }
+  
+            /*
+            let child = graph.graph.get_mut(&childID).unwrap();
+            let parentID: TagID = row.get_unwrap(0);
+            let parent = graph.graph.get(&parentID).unwrap();
+
+            child.parents.push(parent);
+            */
+
+            let parentID: TagID = row.get_unwrap(0);
+            let parent = graph.graph.get(&parentID).unwrap();
+
+            graph.graph.get_mut(&childID).unwrap().parents.push(parent);
+        }
+        graph
+    }
+}
+
 /// Nodes in a [TagGraph]
 struct TagNode<'a> {
     parents: Vec<&'a TagNode<'a>>,
     id: TagID,
     name: String,
+}
+
+impl TagNode<'_> {
+    //Queries the database for the name associated with an ID and makes a node with NO parents listed
+    fn new_isolated_node (id: TagID, conn: &Connection) -> Self {
+        let tag_name: String = conn.query_row("SELECT name FROM tag WHERE id = ?", [id], |name| {name.get(0)}).unwrap();
+        TagNode {parents: vec![], id, name: tag_name}
+    }
 }
 
 impl TagGraph<'_> {
@@ -152,7 +203,10 @@ impl<'a> Database<'a> {
             .map(|x| x.to_str())
             .flatten()
             .map(|x| x.to_string())
-            .ok_or(Error {gui_msg: "Encountered malformed path entry in DB".to_string(), err_type: ErrorType::Logical})?;
+            .ok_or(Error {
+                gui_msg: "Encountered malformed path entry in DB".to_string(),
+                err_type: ErrorType::Logical,
+            })?;
 
         let tags = self.taggraph.get_ancestor_ids(id);
         Ok(FileDetails {
@@ -164,12 +218,13 @@ impl<'a> Database<'a> {
     }
 
     ///Retrieve rows from child_to_parent table, construct a [TagGraph]
-    fn create_tag_tree() {
+    fn create_tag_graph() -> TagGraph<'a> {
         //make tag graph
         //SELECT * FROM child_to_parent
         //For each row in child to parent
         //if there is no TagNode.tag matching in the graph already, then create it, and add the parent
         //else add the parent
+        todo!();
     }
 
     fn new_tag<S: AsRef<str>>(&self, name: S) -> Option<i64> {
@@ -194,9 +249,7 @@ impl<'a> Database<'a> {
 
     fn get_tags(&self) -> Vec<TagDetails> {
         let mtx = self.conn.lock().expect("Mutex is poisoned");
-        let mut query = mtx
-            .prepare("SELECT * from tag")
-            .unwrap();
+        let mut query = mtx.prepare("SELECT * from tag").unwrap();
         let tag_iter = query
             .query_map([], |row| {
                 Ok(TagDetails {
