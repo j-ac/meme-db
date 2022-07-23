@@ -2,6 +2,7 @@
   "$schema": "..\\node_modules/@tauri-apps/cli\\schema.json",
   "build": {
     "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run start",
     "devPath": "http://localhost:4200",
     "distDir": "../dist/meme-db"
   },
