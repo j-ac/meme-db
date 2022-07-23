@@ -32,7 +32,7 @@
     "@taiga-ui/core": "^2.53.0",
     "@taiga-ui/icons": "^2.53.0",
     "@taiga-ui/kit": "^2.53.0",
-    "@tauri-apps/api": "^1.0.1",
+    "@tauri-apps/api": "^1.0.2",
     "rxjs": "~7.5.0",
     "tslib": "^2.3.0",
     "zone.js": "^0.11.6"
@@ -41,7 +41,7 @@
     "@angular-devkit/build-angular": "^14.0.2",
     "@angular/cli": "^14.0.2",
     "@angular/compiler-cli": "^14.0.2",
-    "@tauri-apps/cli": "1.0.0-rc.13",
+    "@tauri-apps/cli": "^1.0.5",
     "@types/jasmine": "~4.0.0",
     "jasmine-core": "~4.1.0",
     "karma": "~6.3.0",
