@@ -26,8 +26,18 @@ async fn get_tags(
 async fn mod_tag(
     ctx: State<'_, Context>,
     database: DatabaseID,
-) -> GUIResult<Vec<TagDetails>> {
-    ctx.get_tags(database)
+    tag: TagDetails,
+) -> GUIResult<()> {
+    ctx.mod_tag_by_tag(database, tag)
+}
+
+#[tauri::command]
+async fn add_tag(
+    ctx: State<'_, Context>,
+    database: DatabaseID,
+    new_tag: TagDetails,
+) -> GUIResult<()> {
+    ctx.add_tag(database, new_tag)
 }
 
 /* FRONT END TAG API END*/
@@ -80,28 +90,6 @@ async fn del_folder(
 }
 
 #[tauri::command]
-async fn get_files_by_folder(
-    ctx: State<'_, Context>,
-    database: DatabaseID,
-    folder: FileID,
-    start: FileID,
-    limit: usize,
-) -> GUIResult<Vec<FileDetails>> {
-    ctx.get_files_by_folder(database, folder, start, limit)
-}
-
-#[tauri::command]
-async fn get_files_by_tag(
-    ctx: State<'_, Context>,
-    database: DatabaseID,
-    tag: TagID,
-    start: FileID,
-    limit: usize,
-) -> GUIResult<Vec<FileDetails>> {
-    ctx.get_files_by_tag(database, tag, start, limit)
-}
-
-#[tauri::command]
 async fn get_files_by_query(
     ctx: State<'_, Context>,
     database: DatabaseID,
@@ -116,7 +104,7 @@ async fn get_files_by_query(
 async fn get_databases(ctx: State<'_, Context>) -> GUIResult<Vec<DatabaseDetails>> {
     Ok(vec![DatabaseDetails {
         id: 0,
-        name: "global".to_string(),
+        name: "Built-in".to_string(),
     }])
 }
 
@@ -171,14 +159,11 @@ async fn load_image(
 /* APPLICATION FUNCTIONS */
 
 struct BinaryConfig {
-    daemon_location: PathBuf,
 }
 
 #[cfg(all(target_os = "windows", debug_assertions))]
 fn get_binary_config() -> BinaryConfig {
-    BinaryConfig {
-        daemon_location: PathBuf::from("./target/debug/meme-db-daemon.exe"),
-    }
+    BinaryConfig {}
 }
 
 #[cfg(all(target_os = "windows", not(debug_assertions)))]
@@ -196,12 +181,11 @@ fn main() {
             //TAG API
             get_tags,
             mod_tag,
+            add_tag,
             //FILE API
             get_folders,
             add_folder,
             del_folder,
-            get_files_by_folder,
-            get_files_by_tag,
             get_files_by_query,
             add_file_tag,
             del_file_tag,

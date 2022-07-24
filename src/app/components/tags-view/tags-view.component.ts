@@ -75,16 +75,19 @@ export class TagsViewComponent implements OnInit {
 
     openTagEditDialog(tag: TagDetails) {
         this.dialogService.open<void>(new PolymorpheusComponent(EditTagDialogComponent, this.injector),
-        {
-            data: tag,
-        }).subscribe(() => {
-            this.tagFetch.sample();
-        });
+            {
+                data: tag,
+            }).subscribe(() => {
+                this.tagFetch.sample();
+            });
     }
 
     openNewTagDialog() {
-        this.dialogService.open<void>(new PolymorpheusComponent(NewTagDialogComponent, this.injector)).subscribe(() => {
-            this.tagFetch.sample();
-        });
+        this.dialogService.open<void>(new PolymorpheusComponent(EditTagDialogComponent, this.injector),
+            {
+                data: null
+            }).subscribe(() => {
+                this.tagFetch.sample();
+            });
     }
 }

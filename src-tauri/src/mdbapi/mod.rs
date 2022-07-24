@@ -154,7 +154,11 @@ impl Context {
         ])
     }
 
-    pub fn mod_tag_by_tag(&self, database: DatabaseID, tag: TagDetails) -> GUIResult<TagDetails> {
+    pub fn mod_tag_by_tag(&self, database: DatabaseID, tag: TagDetails) -> GUIResult<()> {
+        Err(Error::basic("Not implemented!"))
+    }
+
+    pub fn add_tag(&self, database: DatabaseID, new_tag: TagDetails) -> GUIResult<()> {
         Err(Error::basic("Not implemented!"))
     }
 
@@ -198,7 +202,7 @@ pub struct FolderDetails {
     id: FileID,
     path: PathBuf,
 }
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TagDetails {
     pub id: TagID,
     pub name: String,

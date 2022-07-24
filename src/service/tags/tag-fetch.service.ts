@@ -92,7 +92,7 @@ export class TagFetchService {
         return ret;
     }
 
-    public updateByTag(tag: TagDetails): Observable<TagDetails[]> {
+    public updateByTag(tag: TagDetails): Observable<void> {
         let argTag: TagDetailsNative = {
             id: tag.id,
             name: tag.name,
@@ -100,10 +100,26 @@ export class TagFetchService {
                 return t.id;
             })
         }
-        return this.mdbapi.call<null>(API.mod_tag, { tag: argTag })
-            .pipe(switchMap(() => {
-                return this.sample();
-            }));
+        return this.mdbapi.call<void>(API.mod_tag, { tag: argTag }, {
+            preHook: () => {
+                this.sample();
+            }
+        });
+    }
+
+    public addTag(tag: TagDetails): Observable<void> {
+        let argTag: TagDetailsNative = {
+            id: -1,
+            name: tag.name,
+            parents: tag.parents.map((t) => {
+                return t.id;
+            }),
+        };
+        return this.mdbapi.call<void>(API.add_tag, { new_tag: argTag }, {
+            preHook: () => {
+                this.sample();
+            }
+        });
     }
 }
 

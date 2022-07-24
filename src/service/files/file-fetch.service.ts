@@ -24,16 +24,6 @@ export class FileFetchService {
         }, 200)
     }
 
-    public getFilesByFolderNative(folder: FileID, start: FileID, limit: number): Observable<FileDetailsNative[]> {
-        const args = { folder: folder, start: start, limit: limit };
-        return this.mdbapi.call_rores<FileDetailsNative[]>(API.get_files_by_folder, args);
-    }
-
-    public getFilesByTagNative(tag: TagID, start: FileID, limit: number): Observable<FileDetailsNative[]> {
-        let args = { tag: tag, start: start, limit: limit };
-        return this.mdbapi.call_rores<FileDetailsNative[]>(API.get_files_by_tag, args);
-    }
-
     private convertFromNative(native: FileDetailsNative[]): FileDetails[] {
         let ret: FileDetails[] = [];
         for (let n of native) {
@@ -47,19 +37,6 @@ export class FileFetchService {
         return ret;
     }
 
-    public getFilesByFolder(folder: FileID, start: FileID, limit: number): Observable<FileDetails[]> {
-        return this.getFilesByFolderNative(folder, start, limit)
-            .pipe(map((native) => {
-                return this.convertFromNative(native);
-            }))
-    }
-
-    public getFilesByTag(tag: TagID, start: FileID, limit: number): Observable<FileDetails[]> {
-        return this.getFilesByTagNative(tag, start, limit)
-            .pipe(map((native) => {
-                return this.convertFromNative(native);
-            }))
-    }
 
     public getFilesByQuery(query: FileQuery) {
         let args = { query: query };

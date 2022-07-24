@@ -77,8 +77,6 @@ export enum API {
     get_folders,
     add_folder,
     del_folder,
-    get_files_by_folder,
-    get_files_by_tag,
     get_files_by_query,
     add_file_tag,
     del_file_tag,
