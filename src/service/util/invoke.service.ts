@@ -87,4 +87,6 @@ export enum API {
     rename_database,
     //MISC API
     load_image,
+    load_text,
+    load_video,
 }

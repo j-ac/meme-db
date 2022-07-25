@@ -2,7 +2,6 @@
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
 )]
-
 #![allow(unused)]
 
 use mdbapi::*;
@@ -15,19 +14,12 @@ mod mdbapi;
 /* FRONT END TAG API */
 
 #[tauri::command]
-async fn get_tags(
-    ctx: State<'_, Context>,
-    database: DatabaseID,
-) -> GUIResult<Vec<TagDetails>> {
+async fn get_tags(ctx: State<'_, Context>, database: DatabaseID) -> GUIResult<Vec<TagDetails>> {
     ctx.get_tags(database)
 }
 
 #[tauri::command]
-async fn mod_tag(
-    ctx: State<'_, Context>,
-    database: DatabaseID,
-    tag: TagDetails,
-) -> GUIResult<()> {
+async fn mod_tag(ctx: State<'_, Context>, database: DatabaseID, tag: TagDetails) -> GUIResult<()> {
     ctx.mod_tag_by_tag(database, tag)
 }
 
@@ -137,29 +129,50 @@ async fn load_image(
     file: FileID,
 ) -> GUIResult<LoadedImage> {
     let mut retval = Vec::new();
-    let f = match ctx.get_file_by_id(database, file) {
-        Ok(p) => p,
-        Err(e) => return Err(e),
-    };
-    let b64_string = match File::open(f).and_then(|mut im_file: File| {
-        im_file.read_to_end(&mut retval)
-    }) {
-        Result::Ok(_) => base64::encode(retval),
-        Result::Err(e) => return Err(Error::basic(std::format!("read_to_end failed: {e}"))),
-    };
-    Ok(LoadedImage::new(
-        file,
-        b64_string,
-        "jpg".to_string(),
-    ))
+    let f = ctx.get_file_by_id(database, file)?;
+    let b64_string =
+        match File::open(f).and_then(|mut im_file: File| im_file.read_to_end(&mut retval)) {
+            Result::Ok(_) => base64::encode(retval),
+            Result::Err(e) => return Err(Error::basic(std::format!("read_to_end failed: {e}"))),
+        };
+    Ok(LoadedImage::new(file, b64_string, "jpg".to_string()))
 }
+
+#[tauri::command]
+async fn load_text(
+    ctx: State<'_, Context>,
+    database: DatabaseID,
+    file: FileID,
+) -> GUIResult<String> {
+    let mut retval = String::new();
+    let f = ctx.get_file_by_id(database, file)?;
+    File::open(f)
+        .and_then(|mut text_file: File| text_file.read_to_string(&mut retval))
+        .or_else(|_| Err(Error::filesystem("Failed to read the selected file")))?;
+    Ok(retval)
+}
+
+#[tauri::command]
+async fn load_video(
+    ctx: State<'_, Context>,
+    database: DatabaseID,
+    file: FileID,
+) -> GUIResult<String> {
+    /**
+     * The thesis of this function is to create a soft link to the existing file and send that soft link.
+     *
+     * The reason why we have to do this is because Tauri does not allow you to read 
+     * arbitrary files from the GUI. This way the file is always in the same location.
+     */
+    Err(Error::basic("Not implemented!"))
+}
+
 /* FRONT END MISC API END */
 /* FRONT END API FUNCTIONS */
 
 /* APPLICATION FUNCTIONS */
 
-struct BinaryConfig {
-}
+struct BinaryConfig {}
 
 #[cfg(all(target_os = "windows", debug_assertions))]
 fn get_binary_config() -> BinaryConfig {
@@ -196,6 +209,8 @@ fn main() {
             rename_database,
             //MISC API
             load_image,
+            load_text,
+            load_video,
         ])
         .setup(|app| {
             let ctx = Context::setup();

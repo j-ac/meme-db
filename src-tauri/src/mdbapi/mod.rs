@@ -267,6 +267,13 @@ impl Error {
             err_type: ErrorType::Basic,
         }
     }
+
+    pub fn filesystem<S: AsRef<str>>(gui_msg: S) -> Self {
+        Error {
+            gui_msg: gui_msg.as_ref().to_string(),
+            err_type: ErrorType::Filesystem,
+        }
+    }
 }
 
 pub mod daemon {

@@ -2,7 +2,7 @@ import { CdkDrag, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
 import { TuiAlertService, TuiNotification } from '@taiga-ui/core';
 import { switchMap } from 'rxjs';
-import { FileFetchService, FileDetails } from 'src/service/files/file-fetch.service';
+import { FileFetchService, FileDetails, cloneFlatten } from 'src/service/files/file-fetch.service';
 import { TagDetails, TagFetchService, TagID } from 'src/service/tags/tag-fetch.service';
 
 
@@ -13,7 +13,9 @@ import { TagDetails, TagFetchService, TagID } from 'src/service/tags/tag-fetch.s
 })
 export class ImageViewComponent implements OnInit {
     @ViewChild("display_image") private display_image: ElementRef<HTMLImageElement> = {} as ElementRef
-    image: FileDetails | undefined;
+    image?: FileDetails
+    video?: {url: string, f: FileDetails}
+    text?: {val: string, f: FileDetails}
 
     constructor(
         private fileFetch: FileFetchService,
@@ -29,12 +31,7 @@ export class ImageViewComponent implements OnInit {
     @Input("image") set setImage(img: FileDetails | undefined) {
         if (img === undefined)
             return;
-        this.image = {
-            folder: img.folder,
-            id: img.id,
-            name: img.name,
-            tags: this.tags.getFlattened(img.tags),
-        };
+        this.image = cloneFlatten(this.tags, img);
         this.fileFetch.getImage(this.image.id).subscribe({
             next: (image) => {
                 this.display_image.nativeElement.src = image.src;
@@ -47,6 +44,24 @@ export class ImageViewComponent implements OnInit {
                     }).subscribe();
             }
         })
+    }
+
+    @Input("video") setVideo(f?: FileDetails) {
+        if (f === undefined)
+            return;
+        this.video = {
+            url: "",
+            f: cloneFlatten(this.tags, f),
+        }
+    }
+
+    @Input("text") setText(f?: FileDetails) {
+        if (f === undefined)
+            return;
+        this.text = {
+            val: "",
+            f: cloneFlatten(this.tags, f),
+        }
     }
 
     public drop(event: CdkDragDrop<TagDetails>) {
@@ -79,5 +94,13 @@ export class ImageViewComponent implements OnInit {
 
     public imagePresent() {
         return this.image !== undefined;
+    }
+
+    public videoPresent() {
+        return this.video !== undefined;
+    }
+
+    public textPresent() {
+        return this.text !== undefined;
     }
 }

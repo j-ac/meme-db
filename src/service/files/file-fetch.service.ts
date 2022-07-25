@@ -78,6 +78,14 @@ export class FileFetchService {
         }))
     }
 
+    public getText(file: FileID): Observable<string> {
+        return from([]);
+    }
+
+    public getVideo(file: FileID): string {
+        return "NO RESOURCE URL SET";
+    }
+
     public addTag(file: FileID, tag: TagID): Observable<FileDetails> {
         return this.mdbapi.call<FileDetailsNative>(API.add_file_tag, { file: file, tag: tag })
             .pipe(switchMap((native) => {
@@ -125,4 +133,13 @@ export interface FileQuery {
 class CacheEntry {
     public timestamp: number = Date.now()
     constructor(public image: HTMLImageElement) { }
+}
+
+export function cloneFlatten(tagFetch: TagFetchService, f: FileDetails): FileDetails {
+    return {
+        id: f.id,
+        name: f.name,
+        folder: f.folder,
+        tags: tagFetch.getFlattened(f.tags),
+    };
 }
