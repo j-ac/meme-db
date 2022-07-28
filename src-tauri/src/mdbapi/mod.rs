@@ -7,7 +7,7 @@ use self::database::DatabaseMap;
 
 mod database;
 
-impl Context<'_> {
+impl Context {
     pub fn get_files_by_folder(
         &self,
         database: DatabaseID,
@@ -292,8 +292,8 @@ pub enum ErrorType {
     SysAPI,
 }
 
-pub struct Context<'a> {
-    dbmap: DatabaseMap<'a>,
+pub struct Context {
+    dbmap: DatabaseMap,
 }
 
 pub type GUIResult<T> = Result<T, Error>;

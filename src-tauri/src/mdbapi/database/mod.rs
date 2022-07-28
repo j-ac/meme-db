@@ -4,51 +4,54 @@ use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::{collections::HashMap, path::Path};
 
-pub struct Database<'a> {
+pub struct Database {
     conn: Arc<Mutex<Connection>>,
-    taggraph: TagGraph<'a>,
+    taggraph: TagGraph,
 }
 
-pub struct DatabaseMap<'a> {
-    pub map: HashMap<DatabaseID, Database<'a>>,
+pub struct DatabaseMap {
+    pub map: HashMap<DatabaseID, Database>,
     largest_id: usize,
 }
 
-impl DatabaseMap<'_> {
+impl DatabaseMap {
     pub fn get(&self, id: DatabaseID) -> Option<&Database> {
         self.map.get(&id)
     }
 }
 
 /// Stores parent-child relationships between all tags
-struct TagGraph<'a> {
-    graph: HashMap<TagID, TagNode<'a>>,
+struct TagGraph {
+    graph: HashMap<TagID, TagNode>,
 }
 
-impl TagGraph<'static> {
+impl TagGraph {
     //TagGraph with no data
-    fn new() -> TagGraph<'static> {
+    fn new() -> TagGraph {
         TagGraph {
             graph: HashMap::new(),
         }
     }
 
     // Make a new TagGraph and fill its HashMap with the data from an SQL database
-    fn new_populated(conn: Connection) -> TagGraph<'static> {
+    fn new_populated(conn: Connection) -> TagGraph {
         let mut graph = TagGraph::new();
         let mut stmt = conn.prepare("SELECT * FROM child_to_parent").unwrap();
         let mut rows = stmt.query([]).unwrap();
 
+        
         while let Some(row) = rows.next().unwrap() {
-            let childID: TagID = row.get_unwrap(1);
-            let parentID: TagID = row.get_unwrap(0);
+            let child_id: TagID = row.get_unwrap(1);
+            let parent_id: TagID = row.get_unwrap(0);
 
-            if !graph.graph.contains_key(&childID) {
-                graph.graph.insert(childID, TagNode::new_isolated_node(childID, &conn));
+            // If the child node discovered is not yet in the DB, place it
+            if !graph.graph.contains_key(&child_id) {
+                graph.graph.insert(child_id, TagNode::new_isolated_node(child_id, &conn));
             }
 
-            if !graph.graph.contains_key(&parentID) {
-                graph.graph.insert(parentID, TagNode::new_isolated_node(parentID, &conn));
+            // Same as above for the parent node
+            if !graph.graph.contains_key(&parent_id) {
+                graph.graph.insert(parent_id, TagNode::new_isolated_node(parent_id, &conn));
             }
   
             /*
@@ -59,23 +62,22 @@ impl TagGraph<'static> {
             child.parents.push(parent);
             */
 
-            let parentID: TagID = row.get_unwrap(0);
-            let parent = graph.graph.get(&parentID).unwrap();
-
-            graph.graph.get_mut(&childID).unwrap().parents.push(parent);
+            
+            // Make an edge between child and parent in the graph
+            graph.graph.get_mut(&child_id).unwrap().parents.push(parent_id); //Why no compiler error?? parents wants a TagID but I supplied a TagNode.
         }
         graph
     }
 }
 
 /// Nodes in a [TagGraph]
-struct TagNode<'a> {
-    parents: Vec<&'a TagNode<'a>>,
+struct TagNode {
+    parents: Vec<TagID>,
     id: TagID,
     name: String,
 }
 
-impl TagNode<'_> {
+impl TagNode {
     //Queries the database for the name associated with an ID and makes a node with NO parents listed
     fn new_isolated_node (id: TagID, conn: &Connection) -> Self {
         let tag_name: String = conn.query_row("SELECT name FROM tag WHERE id = ?", [id], |name| {name.get(0)}).unwrap();
@@ -83,11 +85,11 @@ impl TagNode<'_> {
     }
 }
 
-impl TagGraph<'_> {
+impl TagGraph {
     //given a TagID return all ancestors
     pub fn get_ancestor_ids(&self, id: TagID) -> Vec<TagID> {
         let mut child = self.graph.get(&id);
-        let mut nodes: Vec<&'_ TagNode<'_>> = Vec::new();
+        let mut nodes: Vec<TagID> = Vec::new();
         nodes.extend_from_slice(&child.unwrap().parents); //Initialize the parent array with the child's immidiate parents
 
         let mut ret = HashSet::new();
@@ -96,10 +98,9 @@ impl TagGraph<'_> {
         //let mut i = 0;
         //while i < nodes.len() {
         for i in 0..nodes.len() {
-            if ret.insert(nodes[i].id) {
-                nodes.extend_from_slice(&nodes[i].parents);
+            if ret.insert(nodes[i]) {
+                nodes.extend_from_slice(&[nodes[i]]);
             }
-            //i += 1;
         }
 
         ret.into_iter().collect::<Vec<_>>()
@@ -130,9 +131,9 @@ struct Image {
     path: String,
 }
 
-impl<'a> Database<'a> {
+impl Database {
     //TODO: Replace with Connection::execute_batch()
-    fn open<P: AsRef<Path>>(path: P, mut dbmap: DatabaseMap<'a>) -> () {
+    fn open<P: AsRef<Path>>(path: P, mut dbmap: DatabaseMap) -> () {
         let connection = Connection::open(path).unwrap();
 
         connection
@@ -215,16 +216,6 @@ impl<'a> Database<'a> {
             folder: 0,
             tags: tags,
         }) //TODO! remove the hardcoded 0 for the folder parameter.
-    }
-
-    ///Retrieve rows from child_to_parent table, construct a [TagGraph]
-    fn create_tag_graph() -> TagGraph<'a> {
-        //make tag graph
-        //SELECT * FROM child_to_parent
-        //For each row in child to parent
-        //if there is no TagNode.tag matching in the graph already, then create it, and add the parent
-        //else add the parent
-        todo!();
     }
 
     fn new_tag<S: AsRef<str>>(&self, name: S) -> Option<i64> {
