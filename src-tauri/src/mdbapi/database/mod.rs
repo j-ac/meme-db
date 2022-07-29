@@ -39,21 +39,24 @@ impl TagGraph {
         let mut stmt = conn.prepare("SELECT * FROM child_to_parent").unwrap();
         let mut rows = stmt.query([]).unwrap();
 
-        
         while let Some(row) = rows.next().unwrap() {
             let child_id: TagID = row.get_unwrap(1);
             let parent_id: TagID = row.get_unwrap(0);
 
             // If the child node discovered is not yet in the DB, place it
             if !graph.graph.contains_key(&child_id) {
-                graph.graph.insert(child_id, TagNode::new_isolated_node(child_id, &conn));
+                graph
+                    .graph
+                    .insert(child_id, TagNode::new_isolated_node(child_id, &conn));
             }
 
             // Same as above for the parent node
             if !graph.graph.contains_key(&parent_id) {
-                graph.graph.insert(parent_id, TagNode::new_isolated_node(parent_id, &conn));
+                graph
+                    .graph
+                    .insert(parent_id, TagNode::new_isolated_node(parent_id, &conn));
             }
-  
+
             /*
             let child = graph.graph.get_mut(&childID).unwrap();
             let parentID: TagID = row.get_unwrap(0);
@@ -62,9 +65,13 @@ impl TagGraph {
             child.parents.push(parent);
             */
 
-            
             // Make an edge between child and parent in the graph
-            graph.graph.get_mut(&child_id).unwrap().parents.push(parent_id); //Why no compiler error?? parents wants a TagID but I supplied a TagNode.
+            graph
+                .graph
+                .get_mut(&child_id)
+                .unwrap()
+                .parents
+                .push(parent_id); //Why no compiler error?? parents wants a TagID but I supplied a TagNode.
         }
         graph
     }
@@ -79,9 +86,17 @@ struct TagNode {
 
 impl TagNode {
     //Queries the database for the name associated with an ID and makes a node with NO parents listed
-    fn new_isolated_node (id: TagID, conn: &Connection) -> Self {
-        let tag_name: String = conn.query_row("SELECT name FROM tag WHERE id = ?", [id], |name| {name.get(0)}).unwrap();
-        TagNode {parents: vec![], id, name: tag_name}
+    fn new_isolated_node(id: TagID, conn: &Connection) -> Self {
+        let tag_name: String = conn
+            .query_row("SELECT name FROM tag WHERE id = ?", [id], |name| {
+                name.get(0)
+            })
+            .unwrap();
+        TagNode {
+            parents: vec![],
+            id,
+            name: tag_name,
+        }
     }
 }
 
@@ -150,7 +165,7 @@ impl Database {
             CREATE TABLE IF NOT EXISTS child_to_parent
                 parent REFERENCES image (id)
                 child REFERENCES image (id);
-                "
+                ",
         );
 
         let ret = Self {
@@ -251,8 +266,11 @@ impl Database {
             .unwrap();
     }
 
-    pub fn delete_from_tag_records(&self, file: FileID, tag: TagID){
-        self.conn.lock().expect("Mutex is poisoned").execute("DELETE from tag_records WHERE image_id = ? AND tag_id = ?", [file, tag]);
+    pub fn delete_from_tag_records(&self, file: FileID, tag: TagID) {
+        self.conn.lock().expect("Mutex is poisoned").execute(
+            "DELETE from tag_records WHERE image_id = ? AND tag_id = ?",
+            [file, tag],
+        );
     }
 }
 
