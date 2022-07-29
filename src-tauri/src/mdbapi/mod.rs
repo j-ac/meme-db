@@ -250,10 +250,19 @@ impl LoadedImage {
 
 #[derive(Debug, Deserialize)]
 pub struct FileQuery {
-    tags_include: Option<Vec<TagID>>,
-    tags_exclude: Option<Vec<TagID>>,
-    folders_include: Option<Vec<FileID>>,
-    names: Option<Vec<String>>,
+    tags_include: Option<Vec<TagID>>, // Include rows WHERE tag_id IN (?,?,?,...)
+    include_strong: Option<bool>, // GROUP BY image_id HAVING COUNT(image_id) = ?
+    folders_include: Option<Vec<FileID>>, // Include rows WHERE folder IN (?,?,?,...)
+    names: Option<Vec<String>>, // Include rows WHERE name IN (?,?,?,...)
+    limit: Option<usize>, // LIMIT ?
+    start: Option<FileID>, // Include rows WHERE ROWID > ?
+}
+
+#[derive(Debug, Serialize)]
+pub struct DBViewResponse {
+    data: Vec<FileDetails>,
+    new_start: FileID, //For pagination
+    total_size: FileID, //For pagination
 }
 
 #[derive(Debug, Serialize)]
