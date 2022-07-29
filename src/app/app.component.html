@@ -1,7 +1,14 @@
-<h1>Henlo?</h1>
-<h2>{{this.title}}</h2>
-<ul>
-    <li *ngFor="let f of this.files">{{f}}</li>
-</ul>
-
-<router-outlet></router-outlet>
+<tui-theme-night></tui-theme-night>
+<tui-root tuiMode="onDark" cdkDropListGroup>
+    <app-top-bar></app-top-bar>
+    <div class="float-container">
+        <div class="float-child">
+            <app-tags-view></app-tags-view>
+            <app-files-view (selectedFile)="this.fileSelectEvent($event)"></app-files-view>
+        </div>
+        <div class="float-child">
+            <app-image-view [image]="this.selectedFile"></app-image-view>
+        </div>
+    </div>
+    <router-outlet></router-outlet>
+</tui-root>

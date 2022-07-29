@@ -1,0 +1,13 @@
+<div>
+    <h2 class="tui-island__title" style="display: inline-block;">Tag Selection</h2>
+</div>
+<tui-scrollbar class="box">
+    <tui-tree [tuiTreeController]="true" [value]="root" [content]="content" [childrenHandler]="handler"></tui-tree>
+    <ng-template #content let-value let-node="node">
+        <div class="wrapper" cdkDropList [cdkDropListEnterPredicate]="falsePred">
+            <app-tag [tag]="value" cdkDrag cdkDropListSortingDisabled [cdkDragData]="value"
+                (tag_clicked)="tagSelected(value)">
+            </app-tag>
+        </div>
+    </ng-template>
+</tui-scrollbar>

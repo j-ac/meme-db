@@ -1,0 +1,25 @@
+@import '~@taiga-ui/core/styles/taiga-ui-local';
+
+
+.float-container {}
+
+.float-child {
+    width: 49%;
+    float: left;
+    margin: 2px;
+    padding: 2px;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+tui-root {
+    font-family: var(--tui-font-text-s);
+    background-color: #222222;
+    width: 100%;
+    height: 100%;
+    background-attachment: fixed;
+}

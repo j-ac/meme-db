@@ -2,7 +2,7 @@
   "$schema": "..\\node_modules/@tauri-apps/cli\\schema.json",
   "build": {
     "beforeBuildCommand": "npm run build",
-    "beforeDevCommand": "before_dev.bat",
+    "beforeDevCommand": "npm run start",
     "devPath": "http://localhost:4200",
     "distDir": "../dist/meme-db"
   },
@@ -12,7 +12,12 @@
   },
   "tauri": {
     "allowlist": {
-      "all": true
+      "all": true,
+      "dialog": {
+        "all": true,
+        "open": true,
+        "save": true
+      }
     },
     "bundle": {
       "active": true,
@@ -48,7 +53,7 @@
       }
     },
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost"
     },
     "updater": {
       "active": false
@@ -56,10 +61,10 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 600,
-        "resizable": true,
+        "height": 800,
+        "resizable": false,
         "title": "MemeDB",
-        "width": 800
+        "width": 1600
       }
     ]
   }

@@ -1,0 +1,21 @@
+<tui-island class="tui-island__paragraph" style="margin-top: 5px;">
+    <h2 class="tui-island__title">{{this.image?.name || "Please open file"}}</h2>
+    <div *ngIf="this.imagePresent()" cdkDropList (cdkDropListDropped)="this.drop($event)" cdkDropListSortingDisabled>
+        <tui-scrollbar class="box">
+            <img #display_image class="center">
+        </tui-scrollbar>
+        <div>
+            <div *ngFor="let t of this.image?.tags" style="display: inline-block; padding: 1px;" cdkDrag
+                [cdkDragData]="t">
+                <tui-tag [value]="t.name" [style.background-color]="t.color || 'gray'" [removable]="true"
+                    (edited)="deleted(t)"></tui-tag>
+            </div>
+        </div>
+    </div>
+    <div *ngIf="this.videoPresent()">
+
+    </div>
+    <div *ngIf="this.textPresent()">
+
+    </div>
+</tui-island>

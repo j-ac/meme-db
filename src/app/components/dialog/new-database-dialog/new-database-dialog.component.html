@@ -1,0 +1,13 @@
+<h2 style="margin-top: 0px;">Create A New Database</h2>
+
+<tui-input tuiTextfieldExampleText="Please enter a new database name" [(ngModel)]="nameValue"
+    tuiHintContent="A unique name for your new database">
+    Database name
+    <span class="tui-required"></span>
+</tui-input>
+<div style="height: 25px; margin-top: 5px;">
+    <tui-error [error]="error"></tui-error>
+</div>
+<button tuiButton type="button" size="m" [disabled]="!goodName" (click)="submit()">
+    Add Database
+</button>
