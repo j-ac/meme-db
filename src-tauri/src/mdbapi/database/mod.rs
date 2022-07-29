@@ -211,9 +211,10 @@ impl Database {
         Ok(FileDetails {
             id: id,
             name: name,
+            file_type: FileType::Image,
             folder: 0,
             tags: tags,
-        }) //TODO! remove the hardcoded 0 for the folder parameter.
+        }) //TODO: remove the hardcoded 0 for the folder parameter, and file_type as Image
     }
 
     fn new_tag<S: AsRef<str>>(&self, name: S) -> Option<i64> {
@@ -271,6 +272,31 @@ impl Database {
             "DELETE from tag_records WHERE image_id = ? AND tag_id = ?",
             [file, tag],
         );
+    }
+
+    pub fn get_files_by_tag(
+        &self,
+        tag: TagID,
+        limit: usize,
+    ) -> GUIResult<Vec<FileDetails>> {
+        let mut ret = Vec::<FileDetails>::new();
+
+        let handle = self.conn.lock().unwrap();
+
+        let mut stmt = handle.prepare("SELECT * FROM tag_records WHERE tag_id = ?").unwrap();
+        let mut rows = stmt.query([tag]).unwrap();
+
+        let i = 0;
+        while let Some(row) = rows.next().unwrap(){
+            if i >= limit {
+                break
+            }
+            let file = self.get_details_on_file(row.get(0).unwrap());
+            ret.push(file.unwrap());
+        }
+
+        Ok(ret)
+
     }
 }
 

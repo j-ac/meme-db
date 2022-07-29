@@ -128,6 +128,7 @@ export enum SupportedFileType {
     Image = "Image",
     Text = "Text",
     Video = "Video",
+    PDF = "PDF",
 }
 
 export interface LoadedImage {

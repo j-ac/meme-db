@@ -51,39 +51,11 @@ impl Context {
         &self,
         database: DatabaseID,
         tag: TagID,
-        start: FileID,
+        start: FileID, //Necessary?
         limit: usize,
     ) -> GUIResult<Vec<FileDetails>> {
-        Ok(vec![
-            FileDetails {
-                id: 0,
-                name: "meme1.jpg".to_string(),
-                folder: 0,
-                tags: vec![0, 1],
-                file_type: FileType::Image,
-            },
-            FileDetails {
-                id: 1,
-                name: "meme2.jpg".to_string(),
-                folder: 0,
-                tags: vec![1],
-                file_type: FileType::Image,
-            },
-            FileDetails {
-                id: 2,
-                name: "meme3.jpg".to_string(),
-                folder: 0,
-                tags: vec![0],
-                file_type: FileType::Image,
-            },
-            FileDetails {
-                id: 3,
-                name: "meme4.jpg".to_string(),
-                folder: 0,
-                tags: vec![2],
-                file_type: FileType::Image,
-            },
-        ])
+        let db = self.dbmap.get(database).unwrap();
+        db.get_files_by_tag(tag, start)
     }
 
     pub fn get_files_by_query(
@@ -215,10 +187,11 @@ pub type FileID = usize;
 pub type TagID = usize;
 
 #[derive(Debug, Serialize)]
-enum FileType {
+pub enum FileType {
     Image,
     Text,
     Video,
+    PDF,
 }
 
 #[derive(Debug, Serialize)]
