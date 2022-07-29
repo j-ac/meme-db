@@ -27,7 +27,13 @@ export class FileFetchService {
     private convertFromNative(native: FileDetailsNative[]): FileDetails[] {
         let ret: FileDetails[] = [];
         for (let n of native) {
-            let toAdd: FileDetails = { folder: n.folder, name: n.name, id: n.id, tags: [] };
+            let toAdd: FileDetails = {
+                folder: n.folder,
+                name: n.name,
+                id: n.id,
+                tags: [],
+                file_type: SupportedFileType.Image
+            };
             for (let t of n.tags) {
                 // We must ensure that tags always get updated before files do.
                 toAdd.tags.push(this.tagFetch.getTagByID(t)!);
@@ -115,6 +121,13 @@ export interface FileDetails {
     name: string;
     folder: FileID;
     tags: TagDetails[];
+    file_type: SupportedFileType
+}
+
+export enum SupportedFileType {
+    Image = "Image",
+    Text = "Text",
+    Video = "Video",
 }
 
 export interface LoadedImage {
@@ -141,5 +154,6 @@ export function cloneFlatten(tagFetch: TagFetchService, f: FileDetails): FileDet
         name: f.name,
         folder: f.folder,
         tags: tagFetch.getFlattened(f.tags),
+        file_type: f.file_type,
     };
 }

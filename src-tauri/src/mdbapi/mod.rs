@@ -17,24 +17,28 @@ impl Context {
                 name: "meme1.jpg".to_string(),
                 folder: 0,
                 tags: vec![0, 1],
+                file_type: FileType::image,
             },
             FileDetails {
                 id: 1,
                 name: "meme2.jpg".to_string(),
                 folder: 0,
                 tags: vec![1],
+                file_type: FileType::image,
             },
             FileDetails {
                 id: 2,
                 name: "meme3.jpg".to_string(),
                 folder: 0,
                 tags: vec![0],
+                file_type: FileType::image,
             },
             FileDetails {
                 id: 3,
                 name: "meme4.jpg".to_string(),
                 folder: 0,
                 tags: vec![2],
+                file_type: FileType::image,
             },
         ])
     }
@@ -52,24 +56,28 @@ impl Context {
                 name: "meme1.jpg".to_string(),
                 folder: 0,
                 tags: vec![0, 1],
+                file_type: FileType::image,
             },
             FileDetails {
                 id: 1,
                 name: "meme2.jpg".to_string(),
                 folder: 0,
                 tags: vec![1],
+                file_type: FileType::image,
             },
             FileDetails {
                 id: 2,
                 name: "meme3.jpg".to_string(),
                 folder: 0,
                 tags: vec![0],
+                file_type: FileType::image,
             },
             FileDetails {
                 id: 3,
                 name: "meme4.jpg".to_string(),
                 folder: 0,
                 tags: vec![2],
+                file_type: FileType::image,
             },
         ])
     }
@@ -190,11 +198,19 @@ pub type FileID = usize;
 pub type TagID = usize;
 
 #[derive(Debug, Serialize)]
+enum FileType {
+    Image,
+    Text,
+    Video,
+}
+
+#[derive(Debug, Serialize)]
 pub struct FileDetails {
     id: FileID,
     name: String,
     folder: FileID,
     tags: Vec<TagID>,
+    file_type: FileType
 }
 
 #[derive(Debug, Serialize)]
