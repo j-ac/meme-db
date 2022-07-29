@@ -86,7 +86,7 @@ impl Context {
         &self,
         database: DatabaseID,
         query: FileQuery,
-    ) -> GUIResult<Vec<FileDetails>> {
+    ) -> GUIResult<DBViewResponse> {
         Err(Error::basic("Not implemented!"))
     }
 

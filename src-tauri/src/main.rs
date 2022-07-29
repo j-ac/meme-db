@@ -86,7 +86,7 @@ async fn get_files_by_query(
     ctx: State<'_, Context>,
     database: DatabaseID,
     query: FileQuery,
-) -> GUIResult<Vec<FileDetails>> {
+) -> GUIResult<DBViewResponse> {
     ctx.get_files_by_query(database, query)
 }
 
