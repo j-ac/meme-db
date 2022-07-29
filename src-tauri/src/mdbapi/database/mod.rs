@@ -132,45 +132,26 @@ struct Image {
 }
 
 impl Database {
-    //TODO: Replace with Connection::execute_batch()
-    fn open<P: AsRef<Path>>(path: P, mut dbmap: DatabaseMap) -> () {
+    fn open<P: AsRef<Path>>(path: P) -> Self {
         let connection = Connection::open(path).unwrap();
-
-        connection
-            .execute(
-                "CREATE TABLE IF NOT EXISTS image (
+        connection.execute_batch(
+            "CREATE TABLE IF NOT EXISTS image (
                 id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE)
-                path TEXT UNIQUE",
-                [],
-            )
-            .unwrap();
-
-        connection
-            .execute(
-                "CREATE TABLE IF NOT EXISTS tag (
+                path TEXT UNIQUE;
+                
+            CREATE TABLE IF NOT EXISTS tag (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE ,
-                name TEXT UNIQUE)",
-                [],
-            )
-            .unwrap();
+                name TEXT UNIQUE);
 
-        connection
-            .execute(
-                "CREATE TABLE IF NOT EXISTS tag_records (
+            CREATE TABLE IF NOT EXISTS tag_records (
                 image_id REFERENCES image (id),
-                tag_id REFERENCES tag (id), UNIQUE (tag_id, image_id) ON CONFLICT IGNORE)",
-                [],
-            )
-            .unwrap();
-
-        connection
-            .execute(
-                "CREATE TABLE IF NOT EXISTS child_to_parent
+                tag_id REFERENCES tag (id), UNIQUE (tag_id, image_id) ON CONFLICT IGNORE);
+            
+            CREATE TABLE IF NOT EXISTS child_to_parent
                 parent REFERENCES image (id)
-                child REFERENCES image (id)",
-                [],
-            )
-            .unwrap();
+                child REFERENCES image (id);
+                "
+        );
 
         let ret = Self {
             conn: Arc::new(Mutex::new(connection)),
@@ -179,7 +160,9 @@ impl Database {
             },
         };
 
-        dbmap.map.insert(dbmap.largest_id + 1, ret);
+        //dbmap.map.insert(dbmap.largest_id + 1, ret);  //Probably better to do this in another function to avoid self-referentials
+
+        ret
     }
 
     //Invoked by mdbapi::add_file_tag()
