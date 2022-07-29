@@ -186,7 +186,7 @@ impl Context {
         })?;
 
         db.insert_into_tag_records(file, tag);
-        db.get_details_on_file(tag)
+        db.get_details_on_file(file)
     }
 
     pub fn del_file_tag(
@@ -195,7 +195,14 @@ impl Context {
         file: FileID,
         tag: TagID,
     ) -> GUIResult<FileDetails> {
-        Err(Error::basic("Not implemented!"))
+        let db = self.dbmap.get(database).ok_or(Error {
+            gui_msg: std::format!("Database ID {} not recognised", database),
+            err_type: ErrorType::Basic,
+        })?;
+
+        db.delete_from_tag_records(file, tag);
+        db.get_details_on_file(file)
+        
     }
 
     pub fn setup() -> Self {

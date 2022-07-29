@@ -250,6 +250,10 @@ impl Database {
             )
             .unwrap();
     }
+
+    pub fn delete_from_tag_records(&self, file: FileID, tag: TagID){
+        self.conn.lock().expect("Mutex is poisoned").execute("DELETE from tag_records WHERE image_id = ? AND tag_id = ?", [file, tag]);
+    }
 }
 
 #[cfg(test)]
