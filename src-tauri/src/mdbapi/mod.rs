@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::cmp;
 use std::option::Option;
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
@@ -63,7 +64,115 @@ impl Context {
         database: DatabaseID,
         query: FileQuery,
     ) -> GUIResult<DBViewResponse> {
-        Err(Error::basic("Not implemented!"))
+        if !query.is_valid() {
+            return Err(Error::basic("Recieved a malformed SQL query.")); //Guarantees Some vectors contain useful data, and illegal combinations of data do not occur
+        };
+
+        let db = self.dbmap.get(database).unwrap();
+        let mut sql: String = String::new(); // The string which will be executed over the connection
+        let mut params = Vec::<usize>::new(); // The parameters passed into the SQL connection with the string
+
+        let mut num_ands = query.count_AND_clauses(); // how many AND clauses are in the prompt
+        let mut first_clause = true; //To determine if an AND clause is needed (not needed for the first clause)
+        let min = query.start.unwrap_or(0);
+        let tags_incl = query.tags_include.as_ref();
+
+        sql += "SELECT * FROM tag_records WHERE ";
+
+        if tags_incl.is_some() {
+            sql += "tag_id IN (";
+            for tag in tags_incl.unwrap().iter() {
+                sql += "?,";
+                params.push(*tag);
+            }
+            sql.pop(); //Delete the trailing comma from the previous for loop
+            sql.push(')');
+            first_clause = false;
+        }
+
+        if num_ands > 1 && !first_clause {
+            sql += " AND ";
+            num_ands -= 1;
+        }
+
+        if query.folders_include.is_some() {
+            todo!("Modify the query to restrict folders");
+        }
+
+        if num_ands > 1 && !first_clause {
+            sql += " AND ";
+            num_ands -= 1;
+        }
+
+        if query.names.is_some() {
+            todo!("Modify the query to restrict names");
+        }
+
+        if num_ands > 1 && !first_clause {
+            sql += " AND ";
+            num_ands -= 1;
+        }
+
+        sql += "rowid > ?";
+        params.push(min);
+
+        if query.include_strong.unwrap_or(false) {
+            sql += format!(
+                " GROUP BY image_id HAVING COUNT (image_id) = {}",
+                tags_incl.unwrap().len()
+            )
+            .as_str();
+        }
+
+        if query.limit.is_some() {
+            sql += " LIMIT ?";
+            params.push(query.limit.unwrap());
+        }
+
+        todo!("Execute the SQL made, pass in parameters");
+
+        /* OLD IMPLEMENTATION
+        let db = self.dbmap.get(database).unwrap();
+        let mut sql: String = String::new();
+        let mut params = Vec::<usize>::new();
+
+        let min = query.start.unwrap_or(0); //If 0, will be the same as not making this check at all
+
+        match query.tags_include {
+            Some(tags_include) => {
+                sql += "SELECT * FROM tag_records WHERE tag_id IN (";
+                for tag in tags_include.iter() {
+                    sql += "?,";
+                    params.push(*tag);
+                }
+                sql.pop(); //Delete the trailing comma from the previous for loop
+                sql.push(')');
+
+                sql += "AND rowid > ? ";
+                params.push(min);
+
+                if query.include_strong.unwrap_or(false) {
+                    sql += format!(
+                        " GROUP BY image_id HAVING COUNT (image_id) = {}",
+                        tags_include.len()
+                    )
+                    .as_str();
+                }
+            }
+            None => {}
+        }
+
+        match query.limit {
+            Some(limit) => {
+                sql += " LIMIT ?";
+                params.push(limit)
+            }
+
+            None => {}
+        }
+
+        //TODO db.some_function_that_executes_the_sql_we_made
+        Err(Error::basic("Unimplemented")) */
     }
 
     pub fn get_file_by_id(&self, database: DatabaseID, file: FileID) -> GUIResult<PathBuf> {
@@ -174,7 +283,6 @@ impl Context {
 
         db.delete_from_tag_records(file, tag);
         db.get_details_on_file(file)
-        
     }
 
     pub fn setup() -> Self {
@@ -200,7 +308,7 @@ pub struct FileDetails {
     name: String,
     folder: FileID,
     tags: Vec<TagID>,
-    file_type: FileType
+    file_type: FileType,
 }
 
 #[derive(Debug, Serialize)]
@@ -241,17 +349,76 @@ impl LoadedImage {
 #[derive(Debug, Deserialize)]
 pub struct FileQuery {
     tags_include: Option<Vec<TagID>>, // Include rows WHERE tag_id IN (?,?,?,...)
-    include_strong: Option<bool>, // GROUP BY image_id HAVING COUNT(image_id) = ?
+    include_strong: Option<bool>,     // GROUP BY image_id HAVING COUNT(image_id) = ?
     folders_include: Option<Vec<FileID>>, // Include rows WHERE folder IN (?,?,?,...)
-    names: Option<Vec<String>>, // Include rows WHERE name IN (?,?,?,...)
-    limit: Option<usize>, // LIMIT ?
-    start: Option<FileID>, // Include rows WHERE ROWID > ?
+    names: Option<Vec<String>>,       // Include rows WHERE name IN (?,?,?,...)
+    limit: Option<usize>,             // LIMIT ?
+    start: Option<FileID>,            // Include rows WHERE ROWID > ?
 }
 
+impl FileQuery {
+    /// Returns a boolean value indicating if this FileQuery can be converted into valid SQL
+    fn is_valid(&self) -> bool {
+        let tags_vec = self.tags_include.as_ref();
+        let folders_vec = self.folders_include.as_ref();
+        let name_vec = self.names.as_ref();
+
+        // If an empty tag vector is supplied
+        if tags_vec.is_some() && tags_vec.unwrap().len() == 0 {
+            //didn't use unwrap_and() because it's a nightly feature
+            return false;
+        }
+
+        // If an empty folder vector is supplied
+        if folders_vec.is_some() && folders_vec.unwrap().len() == 0 {
+            //didn't use unwrap_and() because it's a nightly feature
+            return false;
+        }
+
+        // If an empty name vector is supplied
+        if name_vec.is_some() && folders_vec.unwrap().len() == 0 {
+            //didn't use unwrap_and() because it's a nightly feature
+            return false;
+        }
+
+        // If strong tag inclusion was enabled but no tags were supplied
+        if (tags_vec.is_none()) && self.include_strong.unwrap_or(false) {
+            return false;
+        }
+
+        true
+    }
+
+    /// Returns the number of AND clauses needed for this query to be well-formed SQL
+    fn count_AND_clauses(&self) -> usize {
+        let mut count = -1;
+
+        if self.tags_include.is_some() {
+            count += 1;
+        }
+
+        if self.folders_include.is_some() {
+            count += 1;
+        }
+
+        if self.start.is_some() {
+            count += 1;
+        }
+
+        if self.names.is_some() {
+            count += 1;
+        }
+
+        // no AND clause is used for a LIMIT statement
+        // no AND clause is used for a HAVING COUNT statement
+
+        cmp::max(count, 0) as usize
+    }
+}
 #[derive(Debug, Serialize)]
 pub struct DBViewResponse {
     data: Vec<FileDetails>,
-    new_start: FileID, //For pagination
+    new_start: FileID,  //For pagination
     total_size: FileID, //For pagination
 }
 
