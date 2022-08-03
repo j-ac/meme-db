@@ -5,8 +5,8 @@ use std::sync::{Arc, Mutex};
 use std::{collections::HashMap, path::Path};
 
 pub struct Database {
-    conn: Arc<Mutex<Connection>>,
-    taggraph: TagGraph,
+    pub conn: Arc<Mutex<Connection>>,
+    pub taggraph: TagGraph,
 }
 
 pub struct DatabaseMap {
@@ -21,8 +21,8 @@ impl DatabaseMap {
 }
 
 /// Stores parent-child relationships between all tags
-struct TagGraph {
-    graph: HashMap<TagID, TagNode>,
+pub struct TagGraph {
+    pub graph: HashMap<TagID, TagNode>,
 }
 
 impl TagGraph {
@@ -75,32 +75,7 @@ impl TagGraph {
         }
         graph
     }
-}
 
-/// Nodes in a [TagGraph]
-struct TagNode {
-    parents: Vec<TagID>,
-    id: TagID,
-    name: String,
-}
-
-impl TagNode {
-    //Queries the database for the name associated with an ID and makes a node with NO parents listed
-    fn new_isolated_node(id: TagID, conn: &Connection) -> Self {
-        let tag_name: String = conn
-            .query_row("SELECT name FROM tag WHERE id = ?", [id], |name| {
-                name.get(0)
-            })
-            .unwrap();
-        TagNode {
-            parents: vec![],
-            id,
-            name: tag_name,
-        }
-    }
-}
-
-impl TagGraph {
     //given a TagID return all ancestors
     pub fn get_ancestor_ids(&self, id: TagID) -> Vec<TagID> {
         let mut child = self.graph.get(&id);
@@ -141,6 +116,29 @@ impl TagGraph {
     }
 }
 
+/// Nodes in a [TagGraph]
+pub struct TagNode {
+    parents: Vec<TagID>,
+    id: TagID,
+    name: String,
+}
+
+impl TagNode {
+    //Queries the database for the name associated with an ID and makes a node with NO parents listed
+    fn new_isolated_node(id: TagID, conn: &Connection) -> Self {
+        let tag_name: String = conn
+            .query_row("SELECT name FROM tag WHERE id = ?", [id], |name| {
+                name.get(0)
+            })
+            .unwrap();
+        TagNode {
+            parents: vec![],
+            id,
+            name: tag_name,
+        }
+    }
+}
+
 struct Image {
     id: i32,
     path: String,
@@ -175,12 +173,12 @@ impl Database {
             },
         };
 
-        //dbmap.map.insert(dbmap.largest_id + 1, ret);  //Probably better to do this in another function to avoid self-referentials
+        //TODO dbmap.map.insert(dbmap.largest_id + 1, ret);  //Probably better to do this in another function to avoid self-referentials
 
         ret
     }
 
-    //Invoked by mdbapi::add_file_tag()
+    //Invoked by mdbapi::add_tag_to_file()
     pub fn get_details_on_file(&self, id: FileID) -> GUIResult<FileDetails> {
         let path: PathBuf = self
             .conn
@@ -253,7 +251,7 @@ impl Database {
         Vec::from_iter(tag_iter.map(|tag| tag.unwrap()))
     }
 
-    //Invoked by mdbapi::add_file_tag()
+    //Invoked by mdbapi::add_tag_to_file()
     pub fn insert_into_tag_records(&self, file: FileID, tag: TagID) {
         //TODO, make this actually use the DatabaseID to select the appropriate one
         self.conn

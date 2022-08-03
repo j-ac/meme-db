@@ -255,7 +255,8 @@ impl Context {
         Err(Error::basic("Not implemented!"))
     }
 
-    pub fn add_file_tag(
+
+    pub fn add_tag_to_file(
         &self,
         database: DatabaseID,
         file: FileID,
@@ -266,7 +267,14 @@ impl Context {
             err_type: ErrorType::Basic,
         })?;
 
-        db.insert_into_tag_records(file, tag);
+        // For now, inserting a tag inserts all its parents as well. Probably the most wise implementation
+        let mut tag_and_ancestors = db.taggraph.get_ancestor_ids(tag);
+        tag_and_ancestors.push(tag);
+        
+        for element in tag_and_ancestors {
+            db.insert_into_tag_records(file, tag);
+        }
+        
         db.get_details_on_file(file)
     }
 

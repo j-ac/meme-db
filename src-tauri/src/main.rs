@@ -82,13 +82,13 @@ async fn add_tag(
 /* FRONT END FILE API */
 
 #[tauri::command]
-async fn add_file_tag(
+async fn add_tag_to_file(
     state: State<'_, MDBAPIState>,
     database: DatabaseID,
     file: FileID,
     tag: TagID,
 ) -> GUIResult<FileDetails> {
-    state.exec(|ctx| ctx.add_file_tag(database, file, tag))
+    state.exec(|ctx| ctx.add_tag_to_file(database, file, tag))
 }
 
 #[tauri::command]
@@ -253,7 +253,7 @@ fn main() {
             add_folder,
             del_folder,
             get_files_by_query,
-            add_file_tag,
+            add_tag_to_file,
             del_file_tag,
             //DATABASE API
             get_databases,
