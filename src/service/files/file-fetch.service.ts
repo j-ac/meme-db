@@ -46,9 +46,9 @@ export class FileFetchService {
 
     public getFilesByQuery(query: FileQuery) {
         let args = { query: query };
-        return this.mdbapi.call<FileDetailsNative[]>(API.get_files_by_query, args)
-            .pipe(map((native) => {
-                return this.convertFromNative(native);
+        return this.mdbapi.call<DBViewResponse>(API.get_files_by_query, args)
+            .pipe(map((res) => {
+                return this.convertFromNative(res.data);
             }));
     }
 
@@ -141,6 +141,12 @@ export interface FileQuery {
     tags_exclude?: TagID[];
     folders_include?: FileID[];
     names?: string[];
+}
+
+export interface DBViewResponse {
+    data: FileDetailsNative[],
+    new_start: FileID, //For pagination
+    total_size: FileID, //For pagination
 }
 
 class CacheEntry {

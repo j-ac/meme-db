@@ -162,7 +162,7 @@ impl Context {
         ])
     }
 
-    pub fn mod_tag_by_tag(&self, database: DatabaseID, tag: TagDetails) -> GUIResult<()> {
+    pub fn mod_tag_by_tag(&mut self, database: DatabaseID, tag: TagDetails) -> GUIResult<()> {
         Err(Error::basic("Not implemented!"))
     }
 

@@ -5,31 +5,57 @@
 #![allow(unused)]
 
 use mdbapi::*;
-use std::{fs::File, io::Read, path::PathBuf, vec::Vec};
+use serde::Serialize;
+use std::{
+    borrow::BorrowMut, cell::Cell, fs::File, io::Read, ops::DerefMut, path::PathBuf, sync::{Mutex, Arc},
+    vec::Vec,
+};
 use tauri::{generate_handler, Manager, State};
 
 mod mdbapi;
+
+struct MDBAPIState {
+    ctx: Mutex<Context>,
+}
+
+impl MDBAPIState {
+    fn exec<T, F>(&self, body: F) -> GUIResult<T>
+    where
+        T: Serialize,
+        F: FnOnce(&mut Context) -> GUIResult<T>,
+    {
+        let mut ctx = self.ctx.lock().expect("State mutex poisoned.");
+        body(&mut ctx)
+    }
+}
 
 /* FRONT END API FUNCTIONS */
 /* FRONT END TAG API */
 
 #[tauri::command]
-async fn get_tags(ctx: State<'_, Context>, database: DatabaseID) -> GUIResult<Vec<TagDetails>> {
-    ctx.get_tags(database)
+async fn get_tags(
+    state: State<'_, MDBAPIState>,
+    database: DatabaseID,
+) -> GUIResult<Vec<TagDetails>> {
+    state.exec(|ctx| ctx.get_tags(database))
 }
 
 #[tauri::command]
-async fn mod_tag(ctx: State<'_, Context>, database: DatabaseID, tag: TagDetails) -> GUIResult<()> {
-    ctx.mod_tag_by_tag(database, tag)
+async fn mod_tag(
+    state: State<'_, MDBAPIState>,
+    database: DatabaseID,
+    tag: TagDetails,
+) -> GUIResult<()> {
+    state.exec(|ctx| ctx.mod_tag_by_tag(database, tag))
 }
 
 #[tauri::command]
 async fn add_tag(
-    ctx: State<'_, Context>,
+    state: State<'_, MDBAPIState>,
     database: DatabaseID,
     new_tag: TagDetails,
 ) -> GUIResult<()> {
-    ctx.add_tag(database, new_tag)
+    state.exec(|ctx| ctx.add_tag(database, new_tag))
 }
 
 /* FRONT END TAG API END*/
@@ -37,86 +63,88 @@ async fn add_tag(
 
 #[tauri::command]
 async fn add_file_tag(
-    ctx: State<'_, Context>,
+    state: State<'_, MDBAPIState>,
     database: DatabaseID,
     file: FileID,
     tag: TagID,
 ) -> GUIResult<FileDetails> {
-    ctx.add_file_tag(database, file, tag)
+    state.exec(|ctx| ctx.add_file_tag(database, file, tag))
 }
 
 #[tauri::command]
 async fn del_file_tag(
-    ctx: State<'_, Context>,
+    state: State<'_, MDBAPIState>,
     database: DatabaseID,
     file: FileID,
     tag: TagID,
 ) -> GUIResult<FileDetails> {
-    ctx.del_file_tag(database, file, tag)
+    state.exec(|ctx| ctx.del_file_tag(database, file, tag))
 }
 
 #[tauri::command]
 async fn get_folders(
-    ctx: State<'_, Context>,
+    state: State<'_, MDBAPIState>,
     database: DatabaseID,
 ) -> GUIResult<Vec<FolderDetails>> {
-    ctx.get_folders(database)
+    state.exec(|ctx| ctx.get_folders(database))
 }
 
 #[tauri::command]
 async fn add_folder(
-    ctx: State<'_, Context>,
+    state: State<'_, MDBAPIState>,
     database: DatabaseID,
     path: String,
 ) -> GUIResult<FolderDetails> {
-    ctx.add_folder(database, path)
+    state.exec(|ctx| ctx.add_folder(database, path))
 }
 
 #[tauri::command]
 async fn del_folder(
-    ctx: State<'_, Context>,
+    state: State<'_, MDBAPIState>,
     database: DatabaseID,
     folder: FileID,
 ) -> GUIResult<()> {
-    ctx.del_folder(database, folder)
+    state.exec(|ctx| ctx.del_folder(database, folder))
 }
 
 #[tauri::command]
 async fn get_files_by_query(
-    ctx: State<'_, Context>,
+    state: State<'_, MDBAPIState>,
     database: DatabaseID,
     query: FileQuery,
 ) -> GUIResult<DBViewResponse> {
-    ctx.get_files_by_query(database, query)
+    state.exec(|ctx| ctx.get_files_by_query(database, query))
 }
 
 /* FRONT END FILE API END */
 /* FRONT END DATABASE API */
 #[tauri::command]
-async fn get_databases(ctx: State<'_, Context>) -> GUIResult<Vec<DatabaseDetails>> {
-    Ok(vec![DatabaseDetails {
-        id: 0,
-        name: "Built-in".to_string(),
-    }])
+async fn get_databases(state: State<'_, MDBAPIState>) -> GUIResult<Vec<DatabaseDetails>> {
+    state.exec(|ctx| {
+        Ok(vec![DatabaseDetails {
+            id: 0,
+            name: "Built-in".to_string(),
+        }])
+    })
 }
 
 #[tauri::command]
-async fn add_database(ctx: State<'_, Context>, name: String) -> GUIResult<DatabaseDetails> {
-    Err(Error::basic("Not implemented!"))
+async fn add_database(state: State<'_, MDBAPIState>, name: String) -> GUIResult<DatabaseDetails> {
+    state.exec(|ctx| Err(Error::basic("Not implemented!")))
 }
 
 #[tauri::command]
-async fn del_database(ctx: State<'_, Context>, id: DatabaseID) -> GUIResult<()> {
-    Err(Error::basic("Not implemented!"))
+async fn del_database(state: State<'_, MDBAPIState>, id: DatabaseID) -> GUIResult<()> {
+    state.exec(|ctx| Err(Error::basic("Not implemented!")))
 }
 
 #[tauri::command]
 async fn rename_database(
-    ctx: State<'_, Context>,
+    state: State<'_, MDBAPIState>,
     id: DatabaseID,
     new_name: String,
 ) -> GUIResult<()> {
-    Err(Error::basic("Not implemented!"))
+    state.exec(|ctx| Err(Error::basic("Not implemented!")))
 }
 
 /* FRONT END DATABASE API END */
@@ -124,44 +152,49 @@ async fn rename_database(
 
 #[tauri::command]
 async fn load_image(
-    ctx: State<'_, Context>,
+    state: State<'_, MDBAPIState>,
     database: DatabaseID,
     file: FileID,
 ) -> GUIResult<LoadedImage> {
-    let mut retval = Vec::new();
-    let f = ctx.get_file_by_id(database, file)?;
-    let b64_string =
-        match File::open(f).and_then(|mut im_file: File| im_file.read_to_end(&mut retval)) {
+    state.exec(|ctx| {
+        let mut retval = Vec::new();
+        let f = ctx.get_file_by_id(database, file)?;
+        let b64_string = match File::open(f)
+            .and_then(|mut im_file: File| im_file.read_to_end(&mut retval))
+        {
             Result::Ok(_) => base64::encode(retval),
             Result::Err(e) => return Err(Error::basic(std::format!("read_to_end failed: {e}"))),
         };
-    Ok(LoadedImage::new(file, b64_string, "jpg".to_string()))
+        Ok(LoadedImage::new(file, b64_string, "jpg".to_string()))
+    })
 }
 
 #[tauri::command]
 async fn load_text(
-    ctx: State<'_, Context>,
+    state: State<'_, MDBAPIState>,
     database: DatabaseID,
     file: FileID,
 ) -> GUIResult<String> {
-    let mut retval = String::new();
-    let f = ctx.get_file_by_id(database, file)?;
-    File::open(f)
-        .and_then(|mut text_file: File| text_file.read_to_string(&mut retval))
-        .or_else(|_| Err(Error::filesystem("Failed to read the selected file")))?;
-    Ok(retval)
+    state.exec(|ctx| {
+        let mut retval = String::new();
+        let f = ctx.get_file_by_id(database, file)?;
+        File::open(f)
+            .and_then(|mut text_file: File| text_file.read_to_string(&mut retval))
+            .or_else(|_| Err(Error::filesystem("Failed to read the selected file")))?;
+        Ok(retval)
+    })
 }
 
 #[tauri::command]
 async fn load_video(
-    ctx: State<'_, Context>,
+    state: State<'_, MDBAPIState>,
     database: DatabaseID,
     file: FileID,
 ) -> GUIResult<String> {
     /**
      * The thesis of this function is to create a soft link to the existing file and send that soft link.
      *
-     * The reason why we have to do this is because Tauri does not allow you to read 
+     * The reason why we have to do this is because Tauri does not allow you to read
      * arbitrary files from the GUI. This way the file is always in the same location.
      */
     Err(Error::basic("Not implemented!"))
@@ -213,7 +246,7 @@ fn main() {
             load_video,
         ])
         .setup(|app| {
-            let ctx = Context::setup();
+            let ctx = Mutex::new(Context::setup());
             app.manage(ctx);
             std::result::Result::Ok(())
         })
