@@ -67,7 +67,7 @@ impl Context {
         query: FileQuery,
     ) -> GUIResult<DBViewResponse> {
         if !query.is_valid() {
-            return Err(Error::basic("Recieved a malformed SQL query.")); //Guarantees Some vectors contain useful data, and illegal combinations of data do not occur
+            return Err(Error::basic("Recieved a malformed SQL query.")); //Guarantees vectors contain useful data if they exist, and illegal combinations of data do not occur
         };
 
         let db = self.dbmap.get(database).unwrap();
@@ -75,7 +75,7 @@ impl Context {
         let mut params = Vec::<usize>::new(); // The parameters passed into the SQL connection with the string
 
         let mut num_ands = query.count_AND_clauses(); // how many AND clauses are in the prompt
-        let mut first_clause = true; //To determine if an AND clause is needed (not needed for the first clause)
+        let mut need_and = false; //After a clause is written, need_and is set to true so that an AND is inserted before another clause
         let min = query.start.unwrap_or(0);
         let tags_incl = query.tags_include.as_ref();
 
@@ -89,30 +89,33 @@ impl Context {
             }
             sql.pop(); //Delete the trailing comma from the previous for loop
             sql.push(')');
-            first_clause = false;
+            need_and = true;
         }
 
-        if num_ands > 1 && !first_clause {
+        if num_ands > 1 && need_and {
             sql += " AND ";
             num_ands -= 1;
+            need_and = false;
         }
 
         if query.folders_include.is_some() {
             todo!("Modify the query to restrict folders");
         }
 
-        if num_ands > 1 && !first_clause {
+        if num_ands > 1 && need_and {
             sql += " AND ";
             num_ands -= 1;
+            need_and = false;
         }
 
         if query.names.is_some() {
             todo!("Modify the query to restrict names");
         }
 
-        if num_ands > 1 && !first_clause {
+        if num_ands > 1 && need_and {
             sql += " AND ";
             num_ands -= 1;
+            need_and = false;
         }
 
         sql += "rowid > ?";
