@@ -18,6 +18,10 @@ impl DatabaseMap {
     pub fn get(&self, id: DatabaseID) -> Option<&Database> {
         self.map.get(&id)
     }
+
+    pub fn get_mut(&mut self, id: DatabaseID) -> Option<&mut Database> {
+        self.map.get_mut(&id)
+    }
 }
 
 /// Stores parent-child relationships between all tags
@@ -118,10 +122,11 @@ impl TagGraph {
 
 /// Nodes in a [TagGraph]
 pub struct TagNode {
-    parents: Vec<TagID>,
     id: TagID,
-    name: String,
+    pub parents: Vec<TagID>,
+    pub name: String,
 }
+
 
 impl TagNode {
     //Queries the database for the name associated with an ID and makes a node with NO parents listed

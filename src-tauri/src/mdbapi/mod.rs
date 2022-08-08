@@ -4,6 +4,8 @@ use std::option::Option;
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
+use crate::mdbapi::database::TagNode;
+
 use self::database::DatabaseMap;
 
 mod database;
@@ -247,8 +249,19 @@ impl Context {
         ])
     }
 
+    /// Without changing the [TagID], updates a tag to have the data supplied in a [TagDetails].
+    /// Does not change any tags other than the one supplied. If calling this function would introuce an inconsistency in the tag tree, it should be called additional times to rectify it
     pub fn mod_tag_by_tag(&mut self, database: DatabaseID, tag: TagDetails) -> GUIResult<()> {
-        Err(Error::basic("Not implemented!"))
+        let db = self.dbmap.get_mut(database).ok_or(Error {
+            gui_msg: std::format!("Database ID {} not recognised", database),
+            err_type: ErrorType::Basic,
+        })?;
+        
+        let target = db.taggraph.graph.get_mut(&tag.id).unwrap();
+        target.parents = tag.parents;
+        target.name = tag.name;
+
+        GUIResult::Ok(())
     }
 
     pub fn add_tag(&self, database: DatabaseID, new_tag: TagDetails) -> GUIResult<()> {
