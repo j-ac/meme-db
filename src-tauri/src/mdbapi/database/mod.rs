@@ -7,6 +7,34 @@ use std::{collections::HashMap, path::Path};
 pub struct Database {
     pub conn: Arc<Mutex<Connection>>,
     pub taggraph: TagGraph,
+    pub folder_map: FolderMap,
+}
+
+pub struct FolderMap {
+    pub map: HashMap<FileID, String>,
+}
+
+impl FolderMap {
+    pub fn new() -> Self {
+        FolderMap {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn new_populated(conn: &Connection) -> Self {
+        FolderMap {
+            map: HashMap::new(),
+            //todo!("Make this query the database to be correctly populated")
+        }
+    }
+
+    // Returns the path of the folder that will match all files inside it if used in an sql LIKE clause
+    // eg. input of C://dogs/shibas -> C://dogs/shibas/% so that any file under this directory will be captured if put into a LIKE clause
+    pub fn get_folder_for_sql_like_clause(&self, id: FileID) -> String {
+        let mut path = self.map.get(&id).unwrap().clone();
+        path.push_str("/%");
+        path
+    }
 }
 
 pub struct DatabaseMap {
@@ -38,7 +66,7 @@ impl TagGraph {
     }
 
     // Make a new TagGraph and fill its HashMap with the data from an SQL database
-    fn new_populated(conn: Connection) -> TagGraph {
+    fn new_populated(conn: &Connection) -> TagGraph {
         let mut graph = TagGraph::new();
         let mut stmt = conn.prepare("SELECT * FROM child_to_parent").unwrap();
         let mut rows = stmt.query([]).unwrap();
@@ -127,7 +155,6 @@ pub struct TagNode {
     pub name: String,
 }
 
-
 impl TagNode {
     //Queries the database for the name associated with an ID and makes a node with NO parents listed
     fn new_isolated_node(id: TagID, conn: &Connection) -> Self {
@@ -172,10 +199,9 @@ impl Database {
         );
 
         let ret = Self {
+            taggraph: TagGraph::new_populated(&connection),
+            folder_map: FolderMap::new_populated(&connection),
             conn: Arc::new(Mutex::new(connection)),
-            taggraph: TagGraph {
-                graph: HashMap::new(),
-            },
         };
 
         //TODO dbmap.map.insert(dbmap.largest_id + 1, ret);  //Probably better to do this in another function to avoid self-referentials
@@ -272,39 +298,80 @@ impl Database {
 
     pub fn delete_from_tag_records(&self, file: FileID, tag: TagID) {
         self.conn.lock().expect("Mutex is poisoned").execute(
-            "DELETE from tag_records WHERE image_id = ? AND tag_id = ?",
+            "DELETE from tag_records WHERE tag_records.image_id = ? AND tag_records.tag_id = ?",
             [file, tag],
         );
     }
 
-    pub fn get_files_by_tag(
-        &self,
-        tag: TagID,
-        limit: usize,
-    ) -> GUIResult<Vec<FileDetails>> {
+    pub fn get_files_by_tag(&self, tag: TagID, limit: usize) -> GUIResult<Vec<FileDetails>> {
         let mut ret = Vec::<FileDetails>::new();
 
         let handle = self.conn.lock().unwrap();
 
-        let mut stmt = handle.prepare("SELECT * FROM tag_records WHERE tag_id = ?").unwrap();
+        let mut stmt = handle
+            .prepare("SELECT * FROM tag_records WHERE tag_records.tag_id = ?")
+            .unwrap();
         let mut rows = stmt.query([tag]).unwrap();
 
         let i = 0;
-        while let Some(row) = rows.next().unwrap(){
+        while let Some(row) = rows.next().unwrap() {
             if i >= limit {
-                break
+                break;
             }
             let file = self.get_details_on_file(row.get(0).unwrap());
             ret.push(file.unwrap());
         }
 
         Ok(ret)
-
     }
+}
+
+//======= get_files_by_query() helpers=======
+pub fn append_tags_clause(tags: &Vec<usize>, params: &mut Vec<Box<dyn ToSql>>) -> String {
+    let mut sql = String::new();
+    sql += "tag_records.tag_id IN(";
+
+    for tag in tags.iter() {
+        sql += "?,";
+        params.push(Box::new(tag.clone()));
+    }
+    sql.pop(); //Delete the trailing comma from the previous for loop
+    sql.push(')');
+
+    sql
+}
+
+//Return an " AND " and modify the relevant variables
+pub fn append_and_clause(need_and: &mut bool, num_ands: &mut usize) -> String {
+    *num_ands -= 1;
+    *need_and = false;
+    " AND ".to_string()
+}
+
+/// Writes the name of the file as a path so that any file with this substring in the name matches in a sql LIKE clause
+/// eg: input of dog -> %/%dog%.%
+pub fn render_name_for_sql_like_clause(name: String) -> String{
+    if name.contains("%"){
+        panic!();
+    }
+    let ret = "%/%".to_string() + &name + "%.%";
+    ret
 }
 
 #[cfg(test)]
 mod tests {
+    use super::render_name_for_sql_like_clause;
+
     #[test]
-    fn test_one() {}
+    fn test1_render_name_for_sql_like_clause() {
+        assert_eq!("%/dog%.%", render_name_for_sql_like_clause("dog".to_string()));
+    }
+
+    fn test2_render_name_for_sql_like_clause() {
+        assert_eq!("%/x%.%", render_name_for_sql_like_clause("x".to_string()));
+    }
+
+    fn test3_render_name_for_sql_like_clause() {
+        assert_eq!("%/%.%", render_name_for_sql_like_clause("".to_string()));
+    }
 }
