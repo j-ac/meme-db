@@ -76,18 +76,16 @@ impl Context {
         let db = self.dbmap.get(database).unwrap();
         let mut sql: String = String::new(); // The string which will be executed over the connection
         let mut params: Vec<Box<dyn ToSql>> = Vec::new(); // The parameters passed into the SQL connection with the string
-
-        let mut num_ands = query.count_sql_and_clauses(); // how many AND clauses are in the prompt.
-        let mut need_and = false; //After a clause is written, need_and is set to true so that an AND is inserted before another clause
+        let mut conditions = vec![]; // Stores the conditions as they're encountered so that they can be added to sql later with AND clauses in between each one
 
         //These two queries require an SQL JOIN, so they're better off isolated
-        if query.names.is_some() || query.folders_include.is_some() {
-            sql += "SELECT DISTINCT image.id FROM image 
+        sql += "SELECT DISTINCT image.id FROM image 
             JOIN tag_records ON image.id=tag_records.image_id
             WHERE ";
 
+        if query.folders_include.is_some() {
             // Handles the first element without an OR clause
-            sql += "image.path LIKE ?";
+            let mut cond = "image.path LIKE ?".to_string();
             params.push(Box::new(
                 self.folder_map.get_folder_for_sql_like_clause(
                     (&query.folders_include)
@@ -107,18 +105,17 @@ impl Context {
                 .iter()
                 .skip(1)
                 .for_each(|&x| {
-                    sql += "OR image.path LIKE ?";
+                    cond += "OR image.path LIKE ?";
                     params.push(Box::new(x.clone()));
                 });
 
-            if query.names.is_some() && query.folders_include.is_some() {
-                //if both are being performed, an AND is needed between them
-                sql += "AND ";
-            }
+            conditions.push(cond);
+        }
 
-            //Previous algorithm repeated for the names
+        if query.folders_include.is_some() {
+            // Same algorithm used on folders_include redone for names
             // Handles the first element without an OR clause
-            sql += "path LIKE ?";
+            let mut cond = "path LIKE ?".to_string();
             params.push(Box::new(
                 crate::mdbapi::database::render_name_for_sql_like_clause(
                     (&query.names)
@@ -138,38 +135,44 @@ impl Context {
                 .iter()
                 .skip(1)
                 .for_each(|x| {
-                    sql += "OR image.path LIKE ?";
+                    cond += "OR image.path LIKE ?";
                     params.push(Box::new(x.clone()));
                 });
+
+            conditions.push(cond);
         }
-        //Queries that do not require an SQL JOIN
-        else {
-            sql += "SELECT tag_records.image_id FROM tag_records WHERE ";
-            if let Some(tags) = (&query.tags_include).as_ref() {
-                sql += &database::append_tags_clause(tags, &mut params);
-                need_and = true;
-            }
 
-            if num_ands > 1 && need_and {
-                sql = database::append_and_clause(&mut need_and, &mut num_ands);
-            }
+        if let Some(tags) = (&query.tags_include).as_ref() {
+            conditions.push(database::append_tags_clause(tags, &mut params));
+        }
 
-            // Min defaults to 0 which is equivalent to not having a minimum
-            sql += "rowid > ?";
-            params.push(Box::new(query.start.unwrap_or(0))); //Default to 0 if no start was defined
+        {
+            let cond = "image.rowid > ?".to_string();
+            params.push(Box::new(query.start.unwrap_or(0))); //Default to 0 if no start was defined. Equivalent to not having a minimum
+            conditions.push(cond);
+        }
 
-            if query.include_strong.unwrap_or(false) {
-                sql += format!(
-                    " GROUP BY tag_records.image_id HAVING COUNT (image_id) = {}",
-                    query.tags_include.unwrap().len()
-                )
-                .as_str();
-            }
+        // For each condition insert it into the SQL query
+        {
+        sql += conditions.iter().next().unwrap(); // Add the first condition without an AND
+        conditions.iter().skip(1).for_each(|x| { // For each subsequent condition add it with AND prepended
+            sql += " AND ";
+            sql += x;
+        })
+        }
 
-            if let Some(limit) = query.limit {
-                sql += " LIMIT ?";
-                params.push(Box::new(limit));
-            }
+        // ==== ALL FOLLOWING CLAUSES DO NOT REQUIRE ANDS BETWEEN THEM ====
+        if query.include_strong.unwrap_or(false) {
+            sql += format!(
+                " GROUP BY tag_records.image_id HAVING COUNT (image_id) = {}",
+                query.tags_include.unwrap().len()
+            )
+            .as_str();
+        }
+
+        if let Some(limit) = query.limit {
+            sql += " LIMIT ?";
+            params.push(Box::new(limit));
         }
 
         //Execute the statement
@@ -177,16 +180,18 @@ impl Context {
             let mut stmt = lock.prepare(&sql).unwrap();
             let mut rows = stmt.query(params_from_iter(params.iter())).unwrap();
 
-
             let mut data = Vec::<FileDetails>::new();
             while let Some(row) = rows.next().unwrap() {
                 let file = db.get_details_on_file(row.get(0).unwrap());
                 data.push(file.unwrap());
             }
             let new_start = query.start.unwrap_or(0) + data.len();
-            Ok(DBViewResponse {total_size: data.len(), data, new_start, })
-        }
-        else {
+            Ok(DBViewResponse {
+                total_size: data.len(),
+                data,
+                new_start,
+            })
+        } else {
             panic!();
         }
     }
@@ -426,37 +431,12 @@ impl FileQuery {
         true
     }
 
-    /// Returns the number of AND clauses needed for this query to be well-formed SQL
-    fn count_sql_and_clauses(&self) -> usize {
-        let mut count = -1;
-
-        if self.tags_include.is_some() {
-            count += 1;
-        }
-
-        if self.folders_include.is_some() {
-            count += 1;
-        }
-
-        if self.start.is_some() {
-            count += 1;
-        }
-
-        if self.names.is_some() {
-            count += 1;
-        }
-
-        // no AND clause is used for a LIMIT statement
-        // no AND clause is used for a HAVING COUNT statement
-
-        cmp::max(count, 0) as usize
-    }
 }
 #[derive(Debug, Serialize)]
 pub struct DBViewResponse {
     data: Vec<FileDetails>,
     new_start: FileID,  //For pagination
-    total_size: FileID, //For pagination
+    total_size: FileID, //For pagination. The number of results if it were queried with no limit.
 }
 
 #[derive(Debug, Serialize)]

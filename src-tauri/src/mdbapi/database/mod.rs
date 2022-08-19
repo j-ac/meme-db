@@ -341,13 +341,6 @@ pub fn append_tags_clause(tags: &Vec<usize>, params: &mut Vec<Box<dyn ToSql>>) -
     sql
 }
 
-//Return an " AND " and modify the relevant variables
-pub fn append_and_clause(need_and: &mut bool, num_ands: &mut usize) -> String {
-    *num_ands -= 1;
-    *need_and = false;
-    " AND ".to_string()
-}
-
 /// Writes the name of the file as a path so that any file with this substring in the name matches in a sql LIKE clause
 /// eg: input of dog -> %/%dog%.%
 pub fn render_name_for_sql_like_clause(name: String) -> String{
@@ -364,14 +357,14 @@ mod tests {
 
     #[test]
     fn test1_render_name_for_sql_like_clause() {
-        assert_eq!("%/dog%.%", render_name_for_sql_like_clause("dog".to_string()));
+        assert_eq!("%/%dog%.%", render_name_for_sql_like_clause("dog".to_string()));
     }
 
     fn test2_render_name_for_sql_like_clause() {
-        assert_eq!("%/x%.%", render_name_for_sql_like_clause("x".to_string()));
+        assert_eq!("%/%x%.%", render_name_for_sql_like_clause("x".to_string()));
     }
 
     fn test3_render_name_for_sql_like_clause() {
-        assert_eq!("%/%.%", render_name_for_sql_like_clause("".to_string()));
+        assert_eq!("%/%%.%", render_name_for_sql_like_clause("".to_string()));
     }
 }
