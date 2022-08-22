@@ -344,7 +344,7 @@ pub fn append_tags_clause(tags: &Vec<usize>, params: &mut Vec<Box<dyn ToSql>>) -
 /// Writes the name of the file as a path so that any file with this substring in the name matches in a sql LIKE clause
 /// eg: input of dog -> %/%dog%.%
 pub fn render_name_for_sql_like_clause(name: String) -> String{
-    if name.contains("%"){
+    if name.contains("%"){ // This would cause very unexpected behaviors because % is an SQL wildcard
         panic!();
     }
     let ret = "%/%".to_string() + &name + "%.%";

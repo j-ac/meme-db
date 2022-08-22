@@ -1,11 +1,13 @@
 use rusqlite::{params_from_iter, Params, ToSql};
 use serde::{Deserialize, Serialize};
 use std::cmp;
+use std::collections::HashMap;
 use std::ops::Deref;
 use std::option::Option;
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
 
+use crate::get_files_by_query;
 use crate::mdbapi::database::TagNode;
 
 use self::database::{DatabaseMap, FolderMap};
@@ -56,24 +58,42 @@ impl Context {
         &self,
         database: DatabaseID,
         tag: TagID,
-        start: FileID, //Necessary?
+        start: FileID,
         limit: usize,
     ) -> GUIResult<Vec<FileDetails>> {
         let db = self.dbmap.get(database).unwrap();
         db.get_files_by_tag(tag, start)
     }
 
-    /// Temporarially broken. If names or folders_include are in the query, ALL other parts of the query will be ignored
     pub fn get_files_by_query(
-        &self,
+        &mut self,
         database: DatabaseID,
         query: FileQuery,
+    ) -> GUIResult<DBViewResponse>{
+        let mut size: Option<usize> = None;
+        if self.query_cache.contains_key(&query) {
+            size = Some(self.query_cache.get(&query));
+        }
+        else {
+            size = Some(self.get_size_of_files_by_query(database, query.clone()).unwrap());
+            self.query_cache.insert(query.clone(), size.unwrap());
+        }
+
+        self.retrieve_query_data(database, query, size.unwrap())
+
+    }
+
+    pub fn retrieve_query_data(
+        &mut self,
+        database: DatabaseID,
+        query: FileQuery,
+        total_size: usize, // the size of the query if it had no limitations on size (start = 0, limit = 0)
     ) -> GUIResult<DBViewResponse> {
         if !query.is_valid() {
             return Err(Error::basic("Recieved a malformed SQL query.")); //Guarantees vectors contain useful data if they exist, and illegal combinations of data do not occur
         };
 
-        let db = self.dbmap.get(database).unwrap();
+        let db = (self.dbmap.get(database).unwrap());
         let mut sql: String = String::new(); // The string which will be executed over the connection
         let mut params: Vec<Box<dyn ToSql>> = Vec::new(); // The parameters passed into the SQL connection with the string
         let mut conditions = vec![]; // Stores the conditions as they're encountered so that they can be added to sql later with AND clauses in between each one
@@ -146,26 +166,21 @@ impl Context {
             conditions.push(database::append_tags_clause(tags, &mut params));
         }
 
-        {
-            let cond = "image.rowid > ?".to_string();
-            params.push(Box::new(query.start.unwrap_or(0))); //Default to 0 if no start was defined. Equivalent to not having a minimum
-            conditions.push(cond);
-        }
-
         // For each condition insert it into the SQL query
         {
-        sql += conditions.iter().next().unwrap(); // Add the first condition without an AND
-        conditions.iter().skip(1).for_each(|x| { // For each subsequent condition add it with AND prepended
-            sql += " AND ";
-            sql += x;
-        })
+            sql += conditions.iter().next().unwrap(); // Add the first condition without an AND
+            conditions.iter().skip(1).for_each(|x| {
+                // For each subsequent condition add it with AND prepended
+                sql += " AND ";
+                sql += x;
+            })
         }
 
         // ==== ALL FOLLOWING CLAUSES DO NOT REQUIRE ANDS BETWEEN THEM ====
         if query.include_strong.unwrap_or(false) {
             sql += format!(
                 " GROUP BY tag_records.image_id HAVING COUNT (image_id) = {}",
-                query.tags_include.unwrap().len()
+                query.tags_include.clone().unwrap().len()
             )
             .as_str();
         }
@@ -173,29 +188,175 @@ impl Context {
         if let Some(limit) = query.limit {
             sql += " LIMIT ?";
             params.push(Box::new(limit));
+
+            if let Some(offset) = query.start {
+                sql += " OFFSET ?";
+                params.push(Box::new(offset));
+            }
         }
 
         //Execute the statement
-        if let lock = db.conn.lock().expect("Mutex is poisoned") {
+        {
+            let lock = db.conn.lock().expect("Mutex is poisoned");
             let mut stmt = lock.prepare(&sql).unwrap();
             let mut rows = stmt.query(params_from_iter(params.iter())).unwrap();
 
+            // Construct return value components
+            // data
             let mut data = Vec::<FileDetails>::new();
             while let Some(row) = rows.next().unwrap() {
                 let file = db.get_details_on_file(row.get(0).unwrap());
                 data.push(file.unwrap());
             }
+
+            // new_start
             let new_start = query.start.unwrap_or(0) + data.len();
+
+            let t_size = self.query_cache.get(&query);
+
             Ok(DBViewResponse {
-                total_size: data.len(),
+                total_size: t_size,
                 data,
                 new_start,
             })
-        } else {
-            panic!();
         }
     }
 
+    // Determines the size of a query if no limits are imposed on the size
+    pub fn get_size_of_files_by_query(
+        &mut self,
+        database: DatabaseID,
+        query: FileQuery,
+    ) -> Result<usize, Error> {
+        if !query.is_valid() {
+            return Err(Error::basic("Recieved a malformed SQL query.")); //Guarantees vectors contain useful data if they exist, and illegal combinations of data do not occur
+        };
+
+        let db = (self.dbmap.get(database).unwrap());
+        let mut sql: String = String::new(); // The string which will be executed over the connection
+        let mut params: Vec<Box<dyn ToSql>> = Vec::new(); // The parameters passed into the SQL connection with the string
+        let mut conditions = vec![]; // Stores the conditions as they're encountered so that they can be added to sql later with AND clauses in between each one
+
+        //These two queries require an SQL JOIN, so they're better off isolated
+        sql += "SELECT DISTINCT image.id FROM image 
+            JOIN tag_records ON image.id=tag_records.image_id
+            WHERE ";
+
+        if query.folders_include.is_some() {
+            // Handles the first element without an OR clause
+            let mut cond = "image.path LIKE ?".to_string();
+            params.push(Box::new(
+                self.folder_map.get_folder_for_sql_like_clause(
+                    (&query.folders_include)
+                        .as_ref()
+                        .unwrap()
+                        .iter()
+                        .next()
+                        .unwrap()
+                        .clone(),
+                ),
+            ));
+            // Handles all subsequent elements with an OR clause prepended
+            query
+                .folders_include
+                .as_deref()
+                .unwrap()
+                .iter()
+                .skip(1)
+                .for_each(|&x| {
+                    cond += "OR image.path LIKE ?";
+                    params.push(Box::new(x.clone()));
+                });
+
+            conditions.push(cond);
+        }
+
+        if query.folders_include.is_some() {
+            // Same algorithm used on folders_include redone for names
+            // Handles the first element without an OR clause
+            let mut cond = "path LIKE ?".to_string();
+            params.push(Box::new(
+                crate::mdbapi::database::render_name_for_sql_like_clause(
+                    (&query.names)
+                        .as_ref()
+                        .unwrap()
+                        .iter()
+                        .next()
+                        .unwrap()
+                        .clone(),
+                ),
+            ));
+            // Handles all subsequent elements with an OR clause prepended
+            query
+                .names
+                .as_deref()
+                .unwrap()
+                .iter()
+                .skip(1)
+                .for_each(|x| {
+                    cond += "OR image.path LIKE ?";
+                    params.push(Box::new(x.clone()));
+                });
+
+            conditions.push(cond);
+        }
+
+        if let Some(tags) = (&query.tags_include).as_ref() {
+            conditions.push(database::append_tags_clause(tags, &mut params));
+        }
+
+        // For each condition insert it into the SQL query
+        {
+            sql += conditions.iter().next().unwrap(); // Add the first condition without an AND
+            conditions.iter().skip(1).for_each(|x| {
+                // For each subsequent condition add it with AND prepended
+                sql += " AND ";
+                sql += x;
+            })
+        }
+
+        // ==== ALL FOLLOWING CLAUSES DO NOT REQUIRE ANDS BETWEEN THEM ====
+        if query.include_strong.unwrap_or(false) {
+            sql += format!(
+                " GROUP BY tag_records.image_id HAVING COUNT (image_id) = {}",
+                query.tags_include.clone().unwrap().len()
+            )
+            .as_str();
+        }
+
+        if let Some(limit) = query.limit {
+            sql += " LIMIT ?";
+            params.push(Box::new(limit));
+
+            if let Some(offset) = query.start {
+                sql += " OFFSET ?";
+                params.push(Box::new(offset));
+            }
+        }
+
+        //Execute the statement
+        {
+            let lock = db.conn.lock().expect("Mutex is poisoned");
+            let mut stmt = lock.prepare(&sql).unwrap();
+            let mut rows = stmt.query(params_from_iter(params.iter())).unwrap();
+
+            // Construct return value components
+            // data
+            let mut data = Vec::<FileDetails>::new();
+            while let Some(row) = rows.next().unwrap() {
+                let file = db.get_details_on_file(row.get(0).unwrap());
+                data.push(file.unwrap());
+            }
+
+            // new_start
+            let new_start = query.start.unwrap_or(0) + data.len();
+
+            let size = self.query_cache.get(&query);
+
+            Ok(size)
+
+        }
+    }
     pub fn get_file_by_id(&self, database: DatabaseID, file: FileID) -> GUIResult<PathBuf> {
         match file {
             n @ 0..=3 => Ok(format!("C:/Users/Ben/Pictures/meme{}.jpg", n + 1).into()),
@@ -328,6 +489,7 @@ impl Context {
         Self {
             dbmap: todo!(),
             folder_map: todo!(),
+            query_cache: todo!(),
         }
     }
 }
@@ -388,7 +550,7 @@ impl LoadedImage {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone, Hash, PartialEq, Eq)]
 pub struct FileQuery {
     tags_include: Option<Vec<TagID>>, // Include rows WHERE tag_id IN (?,?,?,...)
     include_strong: Option<bool>,     // GROUP BY image_id HAVING COUNT(image_id) = ?
@@ -396,6 +558,29 @@ pub struct FileQuery {
     names: Option<Vec<String>>,       // Include rows WHERE name IN (?,?,?,...)
     limit: Option<usize>,             // LIMIT ?
     start: Option<FileID>,            // Include rows WHERE ROWID > ?
+}
+/// A cache storing the known size of various queries
+/// The size of the query is calculated by doing the query and discarding the result (expensive!), so caching them is important
+/// The cache will be flushed any time the database's data changes, as the data may no longer be current
+pub struct QuerySizeCache {
+    map: HashMap<FileQuery, usize>,
+}
+impl QuerySizeCache {
+    pub fn insert(&mut self, query: FileQuery, size: usize) {
+        self.map.insert(query, size);
+    }
+
+    pub fn contains_key(&self, query: &FileQuery) -> bool{
+        let mut q = query.clone();
+        q.limit = Some(0);
+        q.start = Some(0);
+
+        self.map.contains_key(query)
+    }
+
+    pub fn get(&self, key: &FileQuery) -> usize {
+        self.map.get(key).unwrap().clone()
+    }
 }
 
 impl FileQuery {
@@ -417,7 +602,7 @@ impl FileQuery {
             return false;
         }
 
-        // If an empty name vector is supplied
+        // If an empty names vector is supplied
         if name_vec.is_some() && folders_vec.unwrap().len() == 0 {
             //didn't use unwrap_and() because it's a nightly feature
             return false;
@@ -430,7 +615,6 @@ impl FileQuery {
 
         true
     }
-
 }
 #[derive(Debug, Serialize)]
 pub struct DBViewResponse {
@@ -459,6 +643,7 @@ pub enum ErrorType {
 pub struct Context {
     dbmap: DatabaseMap,
     folder_map: FolderMap,
+    query_cache: QuerySizeCache,
 }
 
 pub type GUIResult<T> = Result<T, Error>;
