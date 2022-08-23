@@ -213,13 +213,19 @@ fn get_binary_config() -> BinaryConfig {
 }
 
 #[cfg(all(target_os = "windows", not(debug_assertions)))]
-fn get_binary_config() -> BinaryConfig {}
+fn get_binary_config() -> BinaryConfig {
+    BinaryConfig {}
+}
 
 #[cfg(target_os = "macos")]
-fn get_binary_config() -> BinaryConfig {}
+fn get_binary_config() -> BinaryConfig {
+    BinaryConfig {}
+}
 
 #[cfg(all(target_family = "unix", not(target_os = "macos")))]
-fn get_binary_config() -> BinaryConfig {}
+fn get_binary_config() -> BinaryConfig {
+    BinaryConfig {}
+}
 
 fn main() {
     tauri::Builder::default()
