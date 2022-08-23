@@ -10,6 +10,7 @@ pub struct Database {
     pub folder_map: FolderMap,
 }
 
+#[derive(Debug, Serialize)]
 pub struct FolderMap {
     pub map: HashMap<FileID, String>,
 }
@@ -197,16 +198,13 @@ impl Database {
                 child REFERENCES image (id);
                 ",
         );
-
-        let ret = Self {
+        Self {
             taggraph: TagGraph::new_populated(&connection),
             folder_map: FolderMap::new_populated(&connection),
             conn: Arc::new(Mutex::new(connection)),
-        };
+        }
 
         //TODO dbmap.map.insert(dbmap.largest_id + 1, ret);  //Probably better to do this in another function to avoid self-referentials
-
-        ret
     }
 
     //Invoked by mdbapi::add_tag_to_file()
@@ -238,11 +236,11 @@ impl Database {
 
         let tags = self.taggraph.get_ancestor_ids(id);
         Ok(FileDetails {
-            id: id,
-            name: name,
+            id,
+            name,
             file_type: FileType::Image,
             folder: 0,
-            tags: tags,
+            tags,
         }) //TODO: remove the hardcoded 0 for the folder parameter, and file_type as Image
     }
 
@@ -343,12 +341,14 @@ pub fn append_tags_clause(tags: &Vec<usize>, params: &mut Vec<Box<dyn ToSql>>) -
 
 /// Writes the name of the file as a path so that any file with this substring in the name matches in a sql LIKE clause
 /// eg: input of dog -> %/%dog%.%
-pub fn render_name_for_sql_like_clause(name: String) -> String{
-    if name.contains("%"){ // This would cause very unexpected behaviors because % is an SQL wildcard
+pub fn render_name_for_sql_like_clause(name: String) -> String {
+    if name.contains("%") {
+        // This would cause very unexpected behaviors because % is an SQL wildcard
         panic!();
     }
-    let ret = "%/%".to_string() + &name + "%.%";
-    ret
+
+    "%/%".to_string() + &name + "%.%"
+
 }
 
 #[cfg(test)]
@@ -357,7 +357,10 @@ mod tests {
 
     #[test]
     fn test1_render_name_for_sql_like_clause() {
-        assert_eq!("%/%dog%.%", render_name_for_sql_like_clause("dog".to_string()));
+        assert_eq!(
+            "%/%dog%.%",
+            render_name_for_sql_like_clause("dog".to_string())
+        );
     }
 
     fn test2_render_name_for_sql_like_clause() {
