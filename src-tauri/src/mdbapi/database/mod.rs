@@ -109,6 +109,10 @@ impl TagGraph {
         graph
     }
 
+    pub fn insert(&mut self, tag: TagDetails){
+        self.graph.insert(tag.id, tag.into());
+    }
+
     //given a TagID return all ancestors
     pub fn get_ancestor_ids(&self, id: TagID) -> Vec<TagID> {
         let mut child = self.graph.get(&id);
@@ -150,10 +154,18 @@ impl TagGraph {
 }
 
 /// Nodes in a [TagGraph]
+// Should this even be distinguished from a TagDetails? they've become the same thing over time
 pub struct TagNode {
     id: TagID,
     pub parents: Vec<TagID>,
     pub name: String,
+    pub colour: usize,
+}
+
+impl From<TagDetails> for TagNode {
+    fn from(tag: TagDetails) -> Self {
+        TagNode { id: (tag.id), parents: (tag.parents), name: (tag.name), colour: (tag.colour) }
+    }
 }
 
 impl TagNode {
@@ -168,6 +180,7 @@ impl TagNode {
             parents: vec![],
             id,
             name: tag_name,
+            colour: 0,
         }
     }
 }
@@ -187,7 +200,8 @@ impl Database {
                 
             CREATE TABLE IF NOT EXISTS tag (
                 id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE ,
-                name TEXT UNIQUE);
+                name TEXT UNIQUE),
+                colour INTEGER;
 
             CREATE TABLE IF NOT EXISTS tag_records (
                 image_id REFERENCES image (id),
@@ -244,17 +258,20 @@ impl Database {
         }) //TODO: remove the hardcoded 0 for the folder parameter, and file_type as Image
     }
 
-    fn new_tag<S: AsRef<str>>(&self, name: S) -> Option<i64> {
+    pub fn new_tag(&self, tag: &TagDetails) -> Option<i64> {
         let mtx = self.conn.lock().expect("Mutex is poisoned");
         let mut stmt = mtx
             .prepare(
-                "INSERT OR IGNORE INTO tags (id, name) 
-        VALUES (NULL, ?)
+                "INSERT OR IGNORE INTO tags (id, name, colour) 
+        VALUES (NULL, ?, ?)
         ",
             )
             .unwrap();
 
-        stmt.execute(&[name.as_ref()]).unwrap();
+        let mut params: Vec<Box<dyn ToSql>> = Vec::new();
+        params.push(Box::new(&tag.name));
+        params.push(Box::new(tag.colour));
+        stmt.execute(params_from_iter(params)).unwrap();
 
         Some(
             self.conn
@@ -273,6 +290,7 @@ impl Database {
                     id: row.get(0)?,
                     name: row.get(1)?,
                     parents: vec![], //TODO: implement this
+                    colour: row.get(2)?,
                 })
             })
             .unwrap();

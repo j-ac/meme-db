@@ -15,56 +15,6 @@ use self::database::{DatabaseMap, FolderMap};
 mod database;
 
 impl Context {
-    pub fn get_files_by_folder(
-        &self,
-        database: DatabaseID,
-        folder: FileID,
-        start: FileID,
-        limit: usize,
-    ) -> GUIResult<Vec<FileDetails>> {
-        Ok(vec![
-            FileDetails {
-                id: 0,
-                name: "meme1.jpg".to_string(),
-                folder: 0,
-                tags: vec![0, 1],
-                file_type: FileType::Image,
-            },
-            FileDetails {
-                id: 1,
-                name: "meme2.jpg".to_string(),
-                folder: 0,
-                tags: vec![1],
-                file_type: FileType::Image,
-            },
-            FileDetails {
-                id: 2,
-                name: "meme3.jpg".to_string(),
-                folder: 0,
-                tags: vec![0],
-                file_type: FileType::Image,
-            },
-            FileDetails {
-                id: 3,
-                name: "meme4.jpg".to_string(),
-                folder: 0,
-                tags: vec![2],
-                file_type: FileType::Image,
-            },
-        ])
-    }
-
-    pub fn get_files_by_tag(
-        &self,
-        database: DatabaseID,
-        tag: TagID,
-        start: FileID,
-        limit: usize,
-    ) -> GUIResult<Vec<FileDetails>> {
-        let db = self.dbmap.get(database).unwrap();
-        db.get_files_by_tag(tag, start)
-    }
-
     pub fn get_files_by_query(
         &mut self,
         database: DatabaseID,
@@ -189,36 +139,43 @@ impl Context {
                 id: 0,
                 name: "TagA".to_string(),
                 parents: vec![],
+                colour: 0,
             },
             TagDetails {
                 id: 1,
                 name: "TagB".to_string(),
                 parents: vec![],
+                colour: 0,
             },
             TagDetails {
                 id: 2,
                 name: "TagC".to_string(),
                 parents: vec![1, 0],
+                colour: 0,
             },
             TagDetails {
                 id: 3,
                 name: "TagC1".to_string(),
                 parents: vec![2],
+                colour: 0,
             },
             TagDetails {
                 id: 4,
                 name: "TagC2".to_string(),
                 parents: vec![2],
+                colour: 0,
             },
             TagDetails {
                 id: 5,
                 name: "TagC3".to_string(),
                 parents: vec![2],
+                colour: 0,
             },
             TagDetails {
                 id: 6,
                 name: "TagC31".to_string(),
                 parents: vec![5],
+                colour: 0,
             },
         ])
     }
@@ -238,8 +195,17 @@ impl Context {
         GUIResult::Ok(())
     }
 
-    pub fn add_tag(&self, database: DatabaseID, new_tag: TagDetails) -> GUIResult<()> {
-        Err(Error::basic("Not implemented!"))
+    // Add a tag to the database, and record its data in the TagGraph
+    pub fn add_tag(&mut self, database: DatabaseID, new_tag: TagDetails) -> GUIResult<()> {
+        let db = self.dbmap.get_mut(database).ok_or(Error {
+            gui_msg: std::format!("Database ID {} not recognised", database),
+            err_type: ErrorType::Basic,
+        })?;
+
+        db.taggraph.insert(new_tag.clone());
+        db.new_tag(&new_tag);
+        
+        Ok(())
     }
 
     pub fn add_tag_to_file(
@@ -314,11 +280,12 @@ pub struct FolderDetails {
     id: FileID,
     path: PathBuf,
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TagDetails {
     pub id: TagID,
     pub name: String,
     pub parents: Vec<TagID>,
+    pub colour: usize, //Representation in the GUI. From 0x0 to 0xFFFFFF.
 }
 
 #[derive(Debug, Serialize)]
