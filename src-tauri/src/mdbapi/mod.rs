@@ -66,7 +66,8 @@ impl Context {
     }
 
     /// Determines the size of a query's result if no limits are imposed on its size
-    // Does this by doing the query, recording the size of the data and discarding the rest. Very wasteful, but it may not be possible another way
+    // Does this by doing the query, recording the size of the data and discarding the rest. Very wasteful
+    // This function may be able to be eliminated by instead using an SQL view over the query
     pub fn get_size_of_files_by_query(
         &mut self,
         database: DatabaseID,
@@ -89,8 +90,7 @@ impl Context {
             let mut stmt = lock.prepare(&sql).unwrap();
             let mut rows = stmt.query(params_from_iter(params.iter())).unwrap();
 
-            // Construct return value components
-            // data
+
             let mut data = Vec::<FileDetails>::new();
             while let Some(row) = rows.next().unwrap() {
                 let file = db.get_details_on_file(row.get(0).unwrap());
@@ -134,50 +134,26 @@ impl Context {
     }
 
     pub fn get_tags(&self, database: DatabaseID) -> GUIResult<Vec<TagDetails>> {
-        Ok(vec![
-            TagDetails {
-                id: 0,
-                name: "TagA".to_string(),
-                parents: vec![],
-                colour: 0,
-            },
-            TagDetails {
-                id: 1,
-                name: "TagB".to_string(),
-                parents: vec![],
-                colour: 0,
-            },
-            TagDetails {
-                id: 2,
-                name: "TagC".to_string(),
-                parents: vec![1, 0],
-                colour: 0,
-            },
-            TagDetails {
-                id: 3,
-                name: "TagC1".to_string(),
-                parents: vec![2],
-                colour: 0,
-            },
-            TagDetails {
-                id: 4,
-                name: "TagC2".to_string(),
-                parents: vec![2],
-                colour: 0,
-            },
-            TagDetails {
-                id: 5,
-                name: "TagC3".to_string(),
-                parents: vec![2],
-                colour: 0,
-            },
-            TagDetails {
-                id: 6,
-                name: "TagC31".to_string(),
-                parents: vec![5],
-                colour: 0,
-            },
-        ])
+        let sql = "SELECT * FROM tag";
+        let db = (self.dbmap.get(database).unwrap());
+
+        //Execute the statement
+        {
+            let lock = db.conn.lock().expect("Mutex is poisoned");
+            let mut stmt = lock.prepare(&sql).unwrap();
+            let mut rows = stmt.query([]).unwrap();
+
+            // Construct return value components
+            // data
+            let mut data = Vec::<TagDetails>::new();
+            while let Some(row) = rows.next().unwrap() {
+                let id = row.get(0).unwrap();
+                let tag_info = TagDetails { id, name: (row.get(1).unwrap()), parents: (db.taggraph.get_parent_ids(id)), colour: (row.get(2).unwrap()) };
+                data.push(tag_info);
+            }
+
+            Ok(data)
+        }
     }
 
     /// Without changing the [TagID], updates a tag to have the data supplied in a [TagDetails].

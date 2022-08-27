@@ -113,7 +113,7 @@ impl TagGraph {
         self.graph.insert(tag.id, tag.into());
     }
 
-    //given a TagID return all ancestors
+    //given a TagID return all ancestors. (Parents, Grandparents ...)
     pub fn get_ancestor_ids(&self, id: TagID) -> Vec<TagID> {
         let mut child = self.graph.get(&id);
         let mut nodes: Vec<TagID> = Vec::new();
@@ -150,6 +150,11 @@ impl TagGraph {
         };
 
         ret */
+    }
+
+    // Return a list of parent IDs, 
+    pub fn get_parent_ids(&self, id: TagID) -> Vec<TagID> {
+        self.graph.get(&id).unwrap().parents.clone()
     }
 }
 
@@ -317,28 +322,6 @@ impl Database {
             "DELETE from tag_records WHERE tag_records.image_id = ? AND tag_records.tag_id = ?",
             [file, tag],
         );
-    }
-
-    pub fn get_files_by_tag(&self, tag: TagID, limit: usize) -> GUIResult<Vec<FileDetails>> {
-        let mut ret = Vec::<FileDetails>::new();
-
-        let handle = self.conn.lock().unwrap();
-
-        let mut stmt = handle
-            .prepare("SELECT * FROM tag_records WHERE tag_records.tag_id = ?")
-            .unwrap();
-        let mut rows = stmt.query([tag]).unwrap();
-
-        let i = 0;
-        while let Some(row) = rows.next().unwrap() {
-            if i >= limit {
-                break;
-            }
-            let file = self.get_details_on_file(row.get(0).unwrap());
-            ret.push(file.unwrap());
-        }
-
-        Ok(ret)
     }
 }
 
