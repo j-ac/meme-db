@@ -178,8 +178,13 @@ async fn load_image(
 ) -> GUIResult<LoadedImage> {
     state.exec(|ctx| {
         let mut retval = Vec::new();
-        let f = ctx.get_file_by_id(database, file)?;
-        let b64_string = match File::open(f)
+        let query = FileQuery::new().set_files_include(vec![file]);
+        let f = ctx.get_files_by_query(database, query)?;
+
+        let db = ctx.dbmap.get(database).unwrap();
+        let path = db.get_file_path(f.data.get(0).unwrap());
+
+        let b64_string = match File::open(path)
             .and_then(|mut im_file: File| im_file.read_to_end(&mut retval))
         {
             Result::Ok(_) => base64::encode(retval),
@@ -197,8 +202,13 @@ async fn load_text(
 ) -> GUIResult<String> {
     state.exec(|ctx| {
         let mut retval = String::new();
-        let f = ctx.get_file_by_id(database, file)?;
-        File::open(f)
+        let query = FileQuery::new().set_files_include(vec![file]);
+        let f = ctx.get_files_by_query(database, query)?;
+        
+        let db = ctx.dbmap.get(database).unwrap();
+        let path = db.get_file_path(f.data.get(0).unwrap());
+       
+        File::open(path)
             .and_then(|mut text_file: File| text_file.read_to_string(&mut retval))
             .or_else(|_| Err(Error::filesystem("Failed to read the selected file")))?;
         Ok(retval)

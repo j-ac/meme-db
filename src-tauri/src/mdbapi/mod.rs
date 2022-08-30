@@ -2,6 +2,7 @@ use rusqlite::{params_from_iter, Params, ToSql};
 use serde::{Deserialize, Serialize};
 use std::cmp;
 use std::collections::HashMap;
+use std::fs::File;
 use std::ops::Deref;
 use std::option::Option;
 use std::path::{Path, PathBuf};
@@ -80,16 +81,16 @@ impl Context {
         let mut unlimited_query = query;
         unlimited_query.remove_limits();
 
-
         let db = (self.dbmap.get(database).unwrap());
-        let (sql, params) = unlimited_query.query_to_sql_and_params(&db.folder_map).unwrap();
+        let (sql, params) = unlimited_query
+            .query_to_sql_and_params(&db.folder_map)
+            .unwrap();
 
         //Execute the statement
         {
             let lock = db.conn.lock().expect("Mutex is poisoned");
             let mut stmt = lock.prepare(&sql).unwrap();
             let mut rows = stmt.query(params_from_iter(params.iter())).unwrap();
-
 
             let mut data = Vec::<FileDetails>::new();
             while let Some(row) = rows.next().unwrap() {
@@ -98,13 +99,6 @@ impl Context {
             }
 
             Ok(data.len())
-        }
-    }
-    
-    pub fn get_file_by_id(&self, database: DatabaseID, file: FileID) -> GUIResult<PathBuf> {
-        match file {
-            n @ 0..=3 => Ok(format!("C:/Users/Ben/Pictures/meme{}.jpg", n + 1).into()),
-            _ => Err(Error::basic("Bad ID!")),
         }
     }
 
@@ -148,7 +142,12 @@ impl Context {
             let mut data = Vec::<TagDetails>::new();
             while let Some(row) = rows.next().unwrap() {
                 let id = row.get(0).unwrap();
-                let tag_info = TagDetails { id, name: (row.get(1).unwrap()), parents: (db.taggraph.get_parent_ids(id)), colour: (row.get(2).unwrap()) };
+                let tag_info = TagDetails {
+                    id,
+                    name: (row.get(1).unwrap()),
+                    parents: (db.taggraph.get_parent_ids(id)),
+                    colour: (row.get(2).unwrap()),
+                };
                 data.push(tag_info);
             }
 
@@ -180,7 +179,7 @@ impl Context {
 
         db.taggraph.insert(new_tag.clone());
         db.new_tag(&new_tag);
-        
+
         Ok(())
     }
 
@@ -245,7 +244,7 @@ pub enum FileType {
 #[derive(Debug, Serialize)]
 pub struct FileDetails {
     id: FileID,
-    name: String,
+    path: String,
     folder: FileID,
     tags: Vec<TagID>,
     file_type: FileType,
@@ -292,17 +291,37 @@ pub struct FileQuery {
     tags_include: Option<Vec<TagID>>, // Include rows WHERE tag_id IN (?,?,?,...)
     include_strong: Option<bool>,     // GROUP BY image_id HAVING COUNT(image_id) = ?
     folders_include: Option<Vec<FileID>>, // Include rows WHERE folder IN (?,?,?,...)
-    names: Option<Vec<String>>,       // Include rows WHERE name IN (?,?,?,...)
-    limit: Option<usize>,             // LIMIT ?
-    start: Option<FileID>,            // Include rows WHERE ROWID > ?
+    files_include: Option<Vec<FileID>>,
+    names: Option<Vec<String>>, // Include rows WHERE name IN (?,?,?,...)
+    limit: Option<usize>,       // LIMIT ?
+    start: Option<FileID>,      // Include rows WHERE ROWID > ?
 }
 
 impl FileQuery {
+    /// Creates a new FileQuery where all field are [None]
+    pub fn new() -> FileQuery {
+        FileQuery {
+            tags_include: None,
+            include_strong: None,
+            folders_include: None,
+            files_include: None,
+            names: None,
+            limit: None,
+            start: None,
+        }
+    }
+
+    pub fn set_files_include(mut self, files_include: Vec<FileID>) -> Self{
+        self.files_include = Some(files_include);
+        self
+    }
+
     /// Returns a boolean value indicating if this FileQuery can be converted into valid SQL
     fn is_valid(&self) -> bool {
         let tags_vec = self.tags_include.as_ref();
         let folders_vec = self.folders_include.as_ref();
         let name_vec = self.names.as_ref();
+        let files_vec = self.files_include.as_ref();
 
         // If an empty tag vector is supplied
         if tags_vec.is_some() && tags_vec.unwrap().len() == 0 {
@@ -312,6 +331,12 @@ impl FileQuery {
 
         // If an empty folder vector is supplied
         if folders_vec.is_some() && folders_vec.unwrap().len() == 0 {
+            //didn't use unwrap_and() because it's a nightly feature
+            return false;
+        }
+
+        // If an empty fileID vector is supplied
+        if files_vec.is_some() && files_vec.unwrap().len() == 0 {
             //didn't use unwrap_and() because it's a nightly feature
             return false;
         }
@@ -436,7 +461,7 @@ impl FileQuery {
     }
 
     // Queries with the limits removed return an exaustive list of files meeting the criteria without truncation
-    pub fn remove_limits(&mut self){
+    pub fn remove_limits(&mut self) {
         self.limit = Some(0);
         self.start = Some(0);
     }
@@ -467,7 +492,7 @@ impl QuerySizeCache {
 
 #[derive(Debug, Serialize)]
 pub struct DBViewResponse {
-    data: Vec<FileDetails>,
+    pub data: Vec<FileDetails>,
     new_start: FileID,  //For pagination
     total_size: FileID, //For pagination. The number of results if it were queried with no limit.
 }
@@ -490,7 +515,7 @@ pub enum ErrorType {
 }
 
 pub struct Context {
-    dbmap: DatabaseMap,
+    pub dbmap: DatabaseMap,
     //folder_map: FolderMap,
     query_cache: QuerySizeCache,
 }

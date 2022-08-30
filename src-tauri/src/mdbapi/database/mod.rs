@@ -23,10 +23,19 @@ impl FolderMap {
     }
 
     pub fn new_populated(conn: &Connection) -> Self {
-        FolderMap {
-            map: HashMap::new(),
-            //todo!("Make this query the database to be correctly populated")
+        let mut ret = FolderMap::new();
+
+        let mut stmt = conn.prepare("SELECT (id, path) FROM folder").unwrap();
+        let mut rows = stmt.query([]).unwrap();
+
+        while let Some(row) = rows.next().unwrap() {
+            let id: usize = row.get(0).unwrap();
+            let path: String = row.get(1).unwrap();
+
+            ret.map.insert(id, path);
         }
+
+        ret
     }
 
     // Returns the path of the folder that will match all files inside it if used in an sql LIKE clause
@@ -109,7 +118,7 @@ impl TagGraph {
         graph
     }
 
-    pub fn insert(&mut self, tag: TagDetails){
+    pub fn insert(&mut self, tag: TagDetails) {
         self.graph.insert(tag.id, tag.into());
     }
 
@@ -152,7 +161,7 @@ impl TagGraph {
         ret */
     }
 
-    // Return a list of parent IDs, 
+    // Return a list of parent IDs,
     pub fn get_parent_ids(&self, id: TagID) -> Vec<TagID> {
         self.graph.get(&id).unwrap().parents.clone()
     }
@@ -169,7 +178,12 @@ pub struct TagNode {
 
 impl From<TagDetails> for TagNode {
     fn from(tag: TagDetails) -> Self {
-        TagNode { id: (tag.id), parents: (tag.parents), name: (tag.name), colour: (tag.colour) }
+        TagNode {
+            id: (tag.id),
+            parents: (tag.parents),
+            name: (tag.name),
+            colour: (tag.colour),
+        }
     }
 }
 
@@ -199,24 +213,29 @@ impl Database {
     fn open<P: AsRef<Path>>(path: P) -> Self {
         let connection = Connection::open(path).unwrap();
         connection.execute_batch(
-            "CREATE TABLE IF NOT EXISTS image (
-                id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE)
-                path TEXT UNIQUE;
+            "CREATE TABLE IF NOT EXISTS folder (
+                id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+                path STRING UNIQUE NOT NULL)
+
+            CREATE TABLE IF NOT EXISTS image (
+                id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
+                folder REFERENCES folder (id),
+                name STRING NOT NULL);
                 
             CREATE TABLE IF NOT EXISTS tag (
-                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE ,
-                name TEXT UNIQUE),
-                colour INTEGER;
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL UNIQUE,
+                name TEXT UNIQUE,
+                colour STRING);
 
             CREATE TABLE IF NOT EXISTS tag_records (
                 image_id REFERENCES image (id),
                 tag_id REFERENCES tag (id), UNIQUE (tag_id, image_id) ON CONFLICT IGNORE);
             
             CREATE TABLE IF NOT EXISTS child_to_parent
-                parent REFERENCES image (id)
-                child REFERENCES image (id);
-                ",
+                parent REFERENCES image (id),
+                child REFERENCES image (id);",
         );
+
         Self {
             taggraph: TagGraph::new_populated(&connection),
             folder_map: FolderMap::new_populated(&connection),
@@ -242,21 +261,10 @@ impl Database {
 
         let folder = path.parent();
 
-        //Convert an ostr to String, and do not include the path.
-        let name: String = path
-            .file_name()
-            .map(|x| x.to_str())
-            .flatten()
-            .map(|x| x.to_string())
-            .ok_or(Error {
-                gui_msg: "Encountered malformed path entry in DB".to_string(),
-                err_type: ErrorType::Logical,
-            })?;
-
         let tags = self.taggraph.get_ancestor_ids(id);
         Ok(FileDetails {
             id,
-            name,
+            path: path.into_os_string().into_string().unwrap(),
             file_type: FileType::Image,
             folder: 0,
             tags,
@@ -301,6 +309,17 @@ impl Database {
             .unwrap();
 
         Vec::from_iter(tag_iter.map(|tag| tag.unwrap()))
+    }
+
+    // Given a file details, queries the database for its full path
+    pub fn get_file_path(&self, info: &FileDetails) -> PathBuf{
+        let lock = self.conn.lock().expect("Mutex is poisoned");
+        let stmt = lock.prepare("SELECT (folder.path || image.name) FROM folder RIGHT JOIN image ON folder.id=image.folder");
+
+        let ret: String = stmt.unwrap().query_row([], |row| row.get(0)).unwrap();
+
+        ret.into()
+
     }
 
     //Invoked by mdbapi::add_tag_to_file()
@@ -349,7 +368,6 @@ pub fn render_name_for_sql_like_clause(name: String) -> String {
     }
 
     "%/%".to_string() + &name + "%.%"
-
 }
 
 #[cfg(test)]
