@@ -16,6 +16,7 @@ use self::database::{DatabaseMap, FolderMap};
 mod database;
 
 impl Context {
+    // TODO: Update this to reflect changes to the database structure
     pub fn get_files_by_query(
         &mut self,
         database: DatabaseID,
