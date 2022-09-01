@@ -53,6 +53,14 @@ pub struct DatabaseMap {
 }
 
 impl DatabaseMap {
+    pub fn new() -> Self {
+        DatabaseMap { map: HashMap::new(), largest_id: 0 }
+    }
+
+    pub fn new_initialized() -> Self {
+        todo!("Create a database map with data saved on disk")
+    }
+
     pub fn get(&self, id: DatabaseID) -> Option<&Database> {
         self.map.get(&id)
     }

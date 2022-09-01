@@ -223,9 +223,9 @@ impl Context {
 
     pub fn setup() -> Self {
         Self {
-            dbmap: todo!(),
+            dbmap: DatabaseMap::new_initialized(),
             //folder_map: todo!(),
-            query_cache: todo!(),
+            query_cache: QuerySizeCache::new(),
         }
     }
 }
@@ -474,6 +474,10 @@ pub struct QuerySizeCache {
     map: HashMap<FileQuery, usize>,
 }
 impl QuerySizeCache {
+    pub fn new() -> Self {
+        QuerySizeCache { map: HashMap::new() }
+    }
+
     pub fn insert(&mut self, query: FileQuery, size: usize) {
         self.map.insert(query, size);
     }
