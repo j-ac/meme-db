@@ -228,25 +228,10 @@ impl Context {
         let json = File::open(dir).unwrap();
         let mut map: HashMap::<DatabaseID, PathBuf> = serde_json::from_reader(json).unwrap();
 
-        let mut dbmap: DatabaseMap = DatabaseMap::new();
-        let mut largest_id = 0;
-        for (key, val) in map.iter(){
-            if *key > largest_id{
-                largest_id = *key;
-            }
+        let dbmap = DatabaseMap::new_populated(map);
 
-            // Construct a Database's components
-            let conn: Arc<Mutex<Connection>> = Arc::new(Mutex::new(rusqlite::Connection::open(val).unwrap()));
-            let mtx = conn.lock().expect("Mutex is poisoned");
-            let taggraph = TagGraph::new_populated(&mtx);
-            let folder_map = FolderMap::new_populated(&mtx);
-            drop(mtx);
-            dbmap.map.insert(*key, Database{conn, taggraph, folder_map});
-
-        }
         Self {
             dbmap,
-            //folder_map: todo!(),
             query_cache: QuerySizeCache::new(),
         }
     }

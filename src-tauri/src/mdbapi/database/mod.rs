@@ -2,10 +2,10 @@ use super::*;
 use rusqlite::{Connection, MappedRows};
 use serde::Serializer;
 use serde_json::{Result, Value};
+use std::collections::binary_heap::Iter;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::{collections::HashMap, path::Path};
-
 
 pub struct Database {
     pub conn: Arc<Mutex<Connection>>,
@@ -57,7 +57,47 @@ pub struct DatabaseMap {
 
 impl DatabaseMap {
     pub fn new() -> Self {
-        DatabaseMap { map: HashMap::new(), largest_id: 0 }
+        DatabaseMap {
+            map: HashMap::new(),
+            largest_id: 0,
+        }
+    }
+
+    /// Given a [`HashMap<DatabaseID, PathBuf>`] relating IDs to their position on disk,
+    /// constructs a DatabaseMap
+    pub fn new_populated(map: HashMap<DatabaseID, PathBuf>) -> Self {
+        let mut dbmap: DatabaseMap = DatabaseMap::new();
+        let mut largest_id = 0;
+        for (key, val) in map.clone().iter() {
+            // Construct a Database's components
+            let conn: Arc<Mutex<Connection>> =
+                Arc::new(Mutex::new(rusqlite::Connection::open(val).unwrap()));
+            let mtx = conn.lock().expect("Mutex is poisoned");
+            let taggraph = TagGraph::new_populated(&mtx);
+            let folder_map = FolderMap::new_populated(&mtx);
+            drop(mtx);
+            dbmap.map.insert(
+                *key,
+                Database {
+                    conn,
+                    taggraph,
+                    folder_map,
+                },
+            );
+        }
+
+        // Store the greatest ID number in the map
+        dbmap.largest_id = map.into_iter().fold(
+            0,
+            |accum, (left, _)| {
+                if accum > left {
+                    accum
+                } else {
+                    left
+                }
+            },
+        );
+        dbmap
     }
 
     pub fn get(&self, id: DatabaseID) -> Option<&Database> {
@@ -319,14 +359,13 @@ impl Database {
     }
 
     // Given a file details, queries the database for its full path
-    pub fn get_file_path(&self, info: &FileDetails) -> PathBuf{
+    pub fn get_file_path(&self, info: &FileDetails) -> PathBuf {
         let lock = self.conn.lock().expect("Mutex is poisoned");
         let stmt = lock.prepare("SELECT (folder.path || image.name) FROM folder RIGHT JOIN image ON folder.id=image.folder");
 
         let ret: String = stmt.unwrap().query_row([], |row| row.get(0)).unwrap();
 
         ret.into()
-
     }
 
     //Invoked by mdbapi::add_tag_to_file()
