@@ -1,3 +1,23 @@
+#![warn(
+    absolute_paths_not_starting_with_crate,
+    //explicit_outlives_requirements,
+    keyword_idents,
+    macro_use_extern_crate,
+    missing_debug_implementations,
+    //missing_docs,
+    non_ascii_idents,
+    noop_method_call,
+    single_use_lifetimes,
+    trivial_casts,
+    trivial_numeric_casts,
+    //unreachable_pub,
+    unused_extern_crates,
+    unused_import_braces,
+    unused_lifetimes,
+    //unused_qualifications,
+    //unused_results,
+  )]
+
 #![cfg_attr(
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
@@ -62,13 +82,13 @@ async fn add_tag(
 /* FRONT END FILE API */
 
 #[tauri::command]
-async fn add_file_tag(
+async fn add_tag_to_file(
     state: State<'_, MDBAPIState>,
     database: DatabaseID,
     file: FileID,
     tag: TagID,
 ) -> GUIResult<FileDetails> {
-    state.exec(|ctx| ctx.add_file_tag(database, file, tag))
+    state.exec(|ctx| ctx.add_tag_to_file(database, file, tag))
 }
 
 #[tauri::command]
@@ -239,7 +259,7 @@ fn main() {
             add_folder,
             del_folder,
             get_files_by_query,
-            add_file_tag,
+            add_tag_to_file,
             del_file_tag,
             //DATABASE API
             get_databases,
