@@ -93,7 +93,7 @@ export class FileFetchService {
     }
 
     public addTag(file: FileID, tag: TagID): Observable<FileDetails> {
-        return this.mdbapi.call<FileDetailsNative>(API.add_tag_to_file, { file: file, tag: tag })
+        return this.mdbapi.call<FileDetailsNative>(API.add_file_tag, { file: file, tag: tag })
             .pipe(switchMap((native) => {
                 return this.convertFromNative([native]);
             }));
@@ -128,7 +128,6 @@ export enum SupportedFileType {
     Image = "Image",
     Text = "Text",
     Video = "Video",
-    PDF = "PDF",
 }
 
 export interface LoadedImage {
