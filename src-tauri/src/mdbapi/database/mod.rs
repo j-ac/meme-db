@@ -1,8 +1,11 @@
 use super::*;
 use rusqlite::{Connection, MappedRows};
+use serde::Serializer;
+use serde_json::{Result, Value};
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::{collections::HashMap, path::Path};
+
 
 pub struct Database {
     pub conn: Arc<Mutex<Connection>>,
@@ -49,16 +52,12 @@ impl FolderMap {
 
 pub struct DatabaseMap {
     pub map: HashMap<DatabaseID, Database>,
-    largest_id: usize,
+    pub largest_id: usize,
 }
 
 impl DatabaseMap {
     pub fn new() -> Self {
         DatabaseMap { map: HashMap::new(), largest_id: 0 }
-    }
-
-    pub fn new_initialized() -> Self {
-        todo!("Create a database map with data saved on disk")
     }
 
     pub fn get(&self, id: DatabaseID) -> Option<&Database> {
@@ -77,14 +76,14 @@ pub struct TagGraph {
 
 impl TagGraph {
     //TagGraph with no data
-    fn new() -> TagGraph {
+    pub fn new() -> TagGraph {
         TagGraph {
             graph: HashMap::new(),
         }
     }
 
     // Make a new TagGraph and fill its HashMap with the data from an SQL database
-    fn new_populated(conn: &Connection) -> TagGraph {
+    pub fn new_populated(conn: &Connection) -> TagGraph {
         let mut graph = TagGraph::new();
         let mut stmt = conn.prepare("SELECT * FROM child_to_parent").unwrap();
         let mut rows = stmt.query([]).unwrap();

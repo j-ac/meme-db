@@ -1,4 +1,5 @@
-use rusqlite::{params_from_iter, Params, ToSql};
+use home::home_dir;
+use rusqlite::{params_from_iter, Params, ToSql, Connection};
 use serde::{Deserialize, Serialize};
 use std::cmp;
 use std::collections::HashMap;
@@ -6,12 +7,13 @@ use std::fs::File;
 use std::ops::Deref;
 use std::option::Option;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, Arc};
 use std::vec::Vec;
 
 use crate::get_files_by_query;
 use crate::mdbapi::database::TagNode;
 
-use self::database::{DatabaseMap, FolderMap};
+use self::database::{DatabaseMap, FolderMap, Database, TagGraph};
 
 mod database;
 
@@ -222,8 +224,28 @@ impl Context {
     }
 
     pub fn setup() -> Self {
+        let dir = home_dir().unwrap().join("memeDB/database_paths.json");
+        let json = File::open(dir).unwrap();
+        let mut map: HashMap::<DatabaseID, PathBuf> = serde_json::from_reader(json).unwrap();
+
+        let mut dbmap: DatabaseMap = DatabaseMap::new();
+        let mut largest_id = 0;
+        for (key, val) in map.iter(){
+            if *key > largest_id{
+                largest_id = *key;
+            }
+
+            // Construct a Database's components
+            let conn: Arc<Mutex<Connection>> = Arc::new(Mutex::new(rusqlite::Connection::open(val).unwrap()));
+            let mtx = conn.lock().expect("Mutex is poisoned");
+            let taggraph = TagGraph::new_populated(&mtx);
+            let folder_map = FolderMap::new_populated(&mtx);
+            drop(mtx);
+            dbmap.map.insert(*key, Database{conn, taggraph, folder_map});
+
+        }
         Self {
-            dbmap: DatabaseMap::new_initialized(),
+            dbmap,
             //folder_map: todo!(),
             query_cache: QuerySizeCache::new(),
         }

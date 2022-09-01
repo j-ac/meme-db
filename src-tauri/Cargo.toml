@@ -21,6 +21,7 @@ tauri = { version = "1.0.0-rc.14", features = ["api-all"] }
 sysinfo = { version = "0.24.2 " }
 base64 = { version = "0.13.0" }
 rusqlite = {version = "~0.27", features = ["bundled", "functions", "blob", "time"] }
+home = "0.5.3"
 
 [features]
 # by default Tauri runs in production mode
