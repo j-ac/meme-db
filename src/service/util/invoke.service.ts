@@ -78,7 +78,7 @@ export enum API {
     add_folder,
     del_folder,
     get_files_by_query,
-    add_tag_to_file,
+    add_file_tag,
     del_file_tag,
     //DATABASE API
     get_databases,
