@@ -228,10 +228,8 @@ impl Context {
         let json = File::open(dir).unwrap();
         let mut map: HashMap::<DatabaseID, PathBuf> = serde_json::from_reader(json).unwrap();
 
-        let dbmap = DatabaseMap::new_populated(map);
-
         Self {
-            dbmap,
+            dbmap: DatabaseMap::new_populated(map),
             query_cache: QuerySizeCache::new(),
         }
     }
@@ -247,6 +245,7 @@ pub enum FileType {
     Text,
     Video,
     Pdf,
+    Unknown,
 }
 
 #[derive(Debug, Serialize)]

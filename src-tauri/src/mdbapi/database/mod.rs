@@ -306,7 +306,7 @@ impl Database {
                 err_type: ErrorType::Arguments,
             })?;
 
-        let folder = path.parent();
+        let folder = path.parent(); //TODO: needed?
 
         let tags = self.taggraph.get_ancestor_ids(id);
         Ok(FileDetails {
@@ -388,6 +388,14 @@ impl Database {
             [file, tag],
         );
     }
+}
+
+/// Based on the extension of a file, checks against the lists of locally stored filetypes and
+/// returns an appropriate [FileType]
+pub fn path_to_filetype(path: &PathBuf) -> FileType {
+    
+
+    todo!();
 }
 
 //======= get_files_by_query() helpers=======
