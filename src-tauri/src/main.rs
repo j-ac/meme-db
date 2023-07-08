@@ -252,7 +252,7 @@ fn main() {
             load_video,
         ])
         .setup(|app| {
-            let ctx = Mutex::new(Context::setup());
+            let ctx = MDBAPIState { ctx: Mutex::new(Context::setup()) };
             app.manage(ctx);
             std::result::Result::Ok(())
         })
